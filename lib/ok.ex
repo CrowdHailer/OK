@@ -5,4 +5,10 @@ defmodule OK do
   def success(value), do: {:ok, value}
 
   def failure(reason), do: {:error, reason}
+
+  defmacro lhs ~>> rhs do
+    quote bind_quoted: [lhs: lhs, rhs: rhs] do
+      OK.bind(lhs, rhs)
+    end
+  end
 end
