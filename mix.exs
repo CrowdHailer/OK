@@ -35,4 +35,12 @@ defmodule OK.Mixfile do
     Effecient error handling in elixir pipelines.
     """
   end
+
+  defp package do
+    [# These are the default files included in the package
+     files: ["lib", "mix.exs", "README*", "LICENSE*", ],
+     maintainers: ["Peter Saxton"],
+     licenses: ["Apache 2.0"],
+     links: %{"GitHub" => "https://github.com/CrowdHailer/OK"}]
+  end
 end
