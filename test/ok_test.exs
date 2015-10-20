@@ -28,4 +28,18 @@ defmodule OKTest do
     result = OK.bind({:error, :original_error}, error_func)
     assert {:error, :original_error} == result
   end
+
+  test "bind must only take a function in success case" do
+    assert_raise FunctionClauseError, fn ->
+      OK.bind({:ok, :test_value}, :no_func)
+    end
+  end
+
+  test "wrapping a value as a success" do
+    assert {:ok, :any_value} = OK.success(:any_value)
+  end
+
+  test "wrapping a reason as a failure" do
+    assert {:error, :some_reason} = OK.failure(:some_reason)
+  end
 end
