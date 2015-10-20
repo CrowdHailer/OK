@@ -29,4 +29,10 @@ defmodule OK.Mixfile do
   defp deps do
     []
   end
+
+  defp description do
+    """
+    Effecient error handling in elixir pipelines.
+    """
+  end
 end
