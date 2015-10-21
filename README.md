@@ -27,7 +27,7 @@ A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:e
 
 ### Bind
 
-The primary functionality is the `OK.bind/1` function.
+The primary functionality is the `OK.bind/2` function.
 This function takes a result tuple and a next function.
 If the result tuple is tagged as a success then it will be passed to the next function.
 If the tag is failure then the next function is skipped
