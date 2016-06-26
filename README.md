@@ -72,11 +72,12 @@ OK.success(:value)
 # => {:ok, :value}
 ```
 
-### failure
+### Failure
 
 Wraps a reason in a failure result tuple.
 
-## TODO
+```elixir
+Ok.failure("reason")
+# => {:error, "reason"}
+```
 
-- The pipeline currently only works with anonymous functions.
-  The next step is to make it work with functions the same as elixirs native pipe.
