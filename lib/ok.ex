@@ -21,7 +21,7 @@ defmodule OK do
 
   ```elixir
   my_func(args)
-  ~>> &do_more/1
+  ~>> do_more
   ```
 
   *`OK` treates the combination of tagged tuples `{:ok, value} | {:error, reason}` as a result monad.
@@ -64,9 +64,72 @@ defmodule OK do
   """
   def failure(reason), do: {:error, reason}
 
+  @doc """
+  Result pipe operator.
+  (Result monad bind operator)
+
+  The result pipe takes the value out of an `{:ok, value}` tuple and passes it as the first argument to the function call on the right.
+
+  ## Examples
+
+      iex> {:ok, 5} ~>> double()
+      {:ok, 10}
+
+      iex> {:error, :previous_bad} ~>> double()
+      {:error, :previous_bad}
+
+  The result pipe is most useful when executing a series of operations that may fail.
+
+      iex> {:ok, 6} ~>> safe_div(3) ~>> double
+      {:ok, 4.0}
+
+      iex> {:ok, 6} ~>> safe_div(0) ~>> double
+      {:error, :zero_division}
+
+  It can be used in several ways.
+  Pipe to a local call.
+  This example is the same as calling `double(5)`
+
+      iex> {:ok, 5} ~>> double
+      {:ok, 10}
+
+  Pipe to a remote call.
+  This example is the same as calling `OKTest.double(3)`
+
+      iex> {:ok, 5} ~>> OKTest.double()
+      {:ok, 10}
+
+      iex> {:ok, 5} ~>> __MODULE__.double()
+      {:ok, 10}
+
+  Pipe with extra arguments
+  This example is the same as calling `OK.safe_div(3, 4)`
+
+      iex> {:ok, 6} ~>> safe_div(2)
+      {:ok, 3.0}
+
+      iex> {:ok, 6} ~>> safe_div(0)
+      {:error, :zero_division}
+
+  Given an anonymous function the following syntax needs to be used.
+
+      iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
+      {:ok, 4}
+  """
   defmacro lhs ~>> rhs do
-    quote bind_quoted: [lhs: lhs, rhs: rhs] do
-      OK.bind(lhs, rhs)
+    {call, line, args} = case rhs do
+      {call, line, nil} ->
+        {call, line, []}
+      {call, line, args} when is_list(args) ->
+        {call, line, args}
+    end
+    quote do
+      case unquote(lhs) do
+        {:ok, value} ->
+          unquote({call, line, [{:value, [], OK} | args]})
+        {:error, _reason} ->
+          unquote(lhs)
+      end
     end
   end
 end

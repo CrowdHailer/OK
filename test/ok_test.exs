@@ -44,36 +44,57 @@ defmodule OKTest do
     assert {:error, :some_reason} = OK.failure(:some_reason)
   end
 
-  test "macro passes success value to function" do
-    report_func = fn (arg) -> send(self, arg) end
+  # test "macro passes success value to function" do
+  #   report_func = fn (arg) -> send(self, arg) end
+  #
+  #   {:ok, :test_value} ~>> report_func
+  #   assert_receive :test_value
+  # end
+  #
+  # test "macro returns replied value" do
+  #   reply_func = fn (_arg) -> {:ok, :reply_ok} end
+  #
+  #   result = {:ok, :test_value} ~>> reply_func
+  #   assert {:ok, :reply_ok} == result
+  # end
+  #
+  # test "macro does not execute function for failure tuple" do
+  #   fail_func = fn (_arg) -> flunk("Should not be called") end
+  #
+  #   {:error, :error_reason} ~>> fail_func
+  # end
+  #
+  # test "macro returns original error" do
+  #   error_func = fn (_arg) -> {:error, :new_error} end
+  #
+  #   result = {:error, :original_error} ~>> error_func
+  #   assert {:error, :original_error} == result
+  # end
+  #
+  # test "macro must only take a function in success case" do
+  #   assert_raise FunctionClauseError, fn ->
+  #     {:ok, :test_value} ~>> :no_func
+  #   end
+  # end
 
-    {:ok, :test_value} ~>> report_func
-    assert_receive :test_value
+  test "scratch pad" do
+    x = {:ok, 7}
+    assert {:ok, 14} == x ~>> double
+    decrement = fn (a, b) -> {:ok, a - b} end
+    assert {:ok, 4} == {:ok, 6} ~>> decrement.(2)
+    assert {:ok, 10} == {:ok, 5} ~>> (&double/1).()
+    # assert {:ok, 16} == {:ok, 5} ~>> &add(3, &1)
+
   end
 
-  test "macro returns replied value" do
-    reply_func = fn (_arg) -> {:ok, :reply_ok} end
-
-    result = {:ok, :test_value} ~>> reply_func
-    assert {:ok, :reply_ok} == result
+  def double(a) do
+    {:ok, 2 * a}
   end
 
-  test "macro does not execute function for failure tuple" do
-    fail_func = fn (_arg) -> flunk("Should not be called") end
-
-    {:error, :error_reason} ~>> fail_func
+  def safe_div(_, 0) do
+    {:error, :zero_division}
   end
-
-  test "macro returns original error" do
-    error_func = fn (_arg) -> {:error, :new_error} end
-
-    result = {:error, :original_error} ~>> error_func
-    assert {:error, :original_error} == result
-  end
-
-  test "macro must only take a function in success case" do
-    assert_raise FunctionClauseError, fn ->
-      {:ok, :test_value} ~>> :no_func
-    end
+  def safe_div(a, b) do
+    {:ok, a / b}
   end
 end

@@ -25,16 +25,16 @@ A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:e
 
 ### '~>>' Macro
 
-This macro allows pipelining results through a pipeline of anonymous functions.
+This macro allows pipelining result tuples through a pipeline of functions.
 
 ```elixir
 import OK, only: :macros
 
 def get_employee_data(file, name) do
   {:ok, file}
-  ~>> &File.read/1
-  ~>> &Poison.decode/1
-  ~>> &Dict.fetch(&1, name)
+  ~>> File.read
+  ~>> Poison.decode
+  ~>> Dict.fetch(name)
 end
 
 def handle_user_data({:ok, data}), do: IO.puts("Contact at #{data["email"]}")
