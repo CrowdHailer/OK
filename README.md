@@ -1,6 +1,6 @@
 # OK Elixir
 
-**Effecient error handling in elixir pipelines. See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explination**
+**Efficient error handling in elixir pipelines. See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation**
 
 [Documentation for OK is available on hexdoc](https://hexdocs.pm/ok)
 
@@ -11,13 +11,15 @@
   1. Add ok to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:ok, "~> 0.0.1"}]
+          [{:ok, "~> 0.2.0"}]
         end
 
 ## Usage
 
-The OK module works with the native error handling in Erlang/Elixir, that is a result tuple.
+The erlang convention for functions that can fail is to return a result tuple
 A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:error`).
+
+The OK module works with result tuples by treating them as a result monad.
 
 ```elixir
 {:ok, value} | {:error, reason}
@@ -26,6 +28,7 @@ A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:e
 ### '~>>' Macro
 
 This macro allows pipelining result tuples through a pipeline of functions.
+The `~>>` macro is the is equivalent to bind/flat_map in other languages.
 
 ```elixir
 import OK, only: :macros

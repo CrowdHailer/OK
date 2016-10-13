@@ -3,7 +3,7 @@ defmodule OK.Mixfile do
 
   def project do
     [app: :ok,
-     version: "0.2.0-rc.1",
+     version: "0.2.0",
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -25,7 +25,7 @@ defmodule OK.Mixfile do
 
   defp description do
     """
-    Effecient error handling in elixir pipelines.
+    Efficient error handling in elixir pipelines.
     """
   end
 

@@ -78,6 +78,10 @@ defmodule OK do
       iex> {:error, :previous_bad} ~>> double()
       {:error, :previous_bad}
 
+      # x is {:ok, 7} defined in `OKTest`.
+      iex> x ~>> double()
+      {:ok, 14}
+
   The result pipe is most useful when executing a series of operations that may fail.
 
       iex> {:ok, 6} ~>> safe_div(3) ~>> double
@@ -114,6 +118,11 @@ defmodule OK do
   Given an anonymous function the following syntax needs to be used.
 
       iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
+      {:ok, 4}
+
+      # decrement returns an anonymous function.
+      # weird I know but was needed as a test case
+      iex> {:ok, 6} ~>> decrement.(2)
       {:ok, 4}
   """
   defmacro lhs ~>> rhs do
