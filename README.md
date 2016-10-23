@@ -1,6 +1,6 @@
-# OK Elixir
+# OK
 
-**Efficient error handling in elixir pipelines. See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation**
+**Elegant error handling in elixir pipelines. See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation**
 
 [Documentation for OK is available on hexdoc](https://hexdocs.pm/ok)
 
@@ -11,12 +11,12 @@
   1. Add ok to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:ok, "~> 0.2.0"}]
+          [{:ok, "~> 1.0.0"}]
         end
 
 ## Usage
 
-The erlang convention for functions that can fail is to return a result tuple
+The erlang convention for functions that can fail is to return a result tuple.
 A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:error`).
 
 The OK module works with result tuples by treating them as a result monad.
@@ -48,3 +48,8 @@ def handle_user_data({:error, :key_not_found}), do: IO.puts("Could not find empl
 get_employee_data("my_company/employees.json")
 |> handle_user_data
 ```
+
+### Railway programming
+
+`OK` can be used for railway programming.
+An explanation of this is available in this [blog](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
