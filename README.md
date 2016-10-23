@@ -6,7 +6,7 @@
 
 ## Installation
 
-[Available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+[Available in Hex](https://hex.pm/packages/ok), the package can be installed as:
 
   1. Add ok to your list of dependencies in `mix.exs`:
 
