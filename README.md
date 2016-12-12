@@ -84,3 +84,16 @@ end
 
 `OK` can be used for railway programming.
 An explanation of this is available in this [blog](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
+
+### Similar Libraries
+
+For reference.
+
+- [exceptional](https://github.com/expede/exceptional)
+- [elixir-monad](https://github.com/nickmeharry/elixir-monad)
+- [monad](https://github.com/rmies/monad)
+- [towel](https://github.com/knrz/towel)
+
+*Possible extensions to include implementing bind on structs so that errors can be better handled.
+Implement a catch functionality for functions that error.
+Implement existing monad library protocols so can extend similar DB functionality e.g. slick*
