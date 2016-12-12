@@ -142,7 +142,24 @@ defmodule OK do
     end
   end
 
+  @doc """
+  Syntactic sugar for combining multiple functions that may fail.
+
+  The result pipe operator is inflexible in several areas.
+  - values can only be passed to the first argument of a function.
+  - values can only be passed to the next function.
+
+  Both of these issues can be avoided by using a try section
+
+  *This macro is marked as BETA.
+  Issues surrounding certain edge cases for returning results remain.
+  To avoid these ensure that the last line of any block contains a `<-` operator.*
+  """
   defmacro try(do: {:__block__, _env, lines}) do
+    IO.warn("""
+    BETA: The API of the try macro is marked as beta.
+    See Github repo (https://github.com/CrowdHailer/OK) for outstanding issues.
+    """)
     nest(lines)
   end
 

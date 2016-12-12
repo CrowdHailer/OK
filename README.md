@@ -11,7 +11,7 @@
   1. Add ok to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:ok, "~> 1.0.0"}]
+          [{:ok, "~> 1.1.0"}]
         end
 
 ## Usage
@@ -25,7 +25,7 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-### '~>>' Macro
+### Result pipelines '~>>'
 
 This macro allows pipelining result tuples through a pipeline of functions.
 The `~>>` macro is the is equivalent to bind/flat_map in other languages.
@@ -47,6 +47,37 @@ def handle_user_data({:error, :key_not_found}), do: IO.puts("Could not find empl
 
 get_employee_data("my_company/employees.json")
 |> handle_user_data
+```
+
+### Result blocks *BETA*
+
+For situations when the pipeline macro is not sufficiently flexible.
+
+To extract a value for an ok tuple use the `<-` operator.
+
+```elixir
+OK.try do
+  a <- safe_div(6, 2)
+  b = a + 1
+  c <- safe_div(b, 2)
+  _ <- {:ok, a + c}
+end
+```
+
+The above code is equivalent to
+```elixir
+case safe_div(6, 2) do
+  {:ok, a} ->
+    b = a + 1
+    case safe_div(b, 2) do
+      result = {:ok, c} ->
+        {:ok, a + c}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  {:error, reason} ->
+    {:error, reason}
+end
 ```
 
 ### Railway programming
