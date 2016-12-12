@@ -3,6 +3,59 @@ defmodule OKTest do
   import OK, only: :macros
   doctest OK
 
+  test "try a chain of operations" do
+    result = OK.try do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+    end
+    assert result == {:ok, 2}
+  end
+
+  test "try last operation failure" do
+    result = OK.try do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 0)
+    end
+    assert result == {:error, :zero_division}
+  end
+
+  test "try first operation failure" do
+    result = OK.try do
+      a <- safe_div(8, 0)
+      b <- safe_div(a, 2)
+    end
+    assert result == {:error, :zero_division}
+  end
+
+  test "try normal code within block" do
+    result = OK.try do
+      a <- safe_div(6, 2) # returns success(6)
+      b = a + 1
+      c <- safe_div(b, 2)
+    end
+    assert result == {:ok, 2}
+  end
+
+  test "normal code at end of operation" do
+    result = OK.try do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      _ <- {:ok, a + b}
+      # a + b
+    end
+    assert result == {:ok, 6}
+  end
+
+  test "yield block at end of operation" do
+    result = OK.try do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      _ <- {:ok, a + b}
+      # a + b
+    end
+    assert result == {:ok, 6}
+  end
+
   test "bind passes success value to function" do
     report_func = fn (arg) -> send(self, arg) end
 

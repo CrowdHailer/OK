@@ -141,4 +141,35 @@ defmodule OK do
       end
     end
   end
+
+  defmacro try(do: {:__block__, _env, lines}) do
+    nest(lines)
+  end
+
+  defp nest([{:<-, _, [left, right]} | []]) do
+    quote do
+      case unquote(right) do
+        result = {:ok, unquote(left)} ->
+          result
+        result = {:error, _} ->
+          result
+      end
+    end
+  end
+  defp nest([{:<-, _, [left, right]} | rest]) do
+    quote do
+      case unquote(right) do
+        {:ok, unquote(left)} ->
+          unquote(nest(rest))
+        result = {:error, _} ->
+          result
+      end
+    end
+  end
+  defp nest([normal | rest]) do
+    quote do
+      unquote(normal)
+      unquote(nest(rest))
+    end
+  end
 end
