@@ -10,9 +10,11 @@
 
   1. Add ok to your list of dependencies in `mix.exs`:
 
-        def deps do
-          [{:ok, "~> 1.1.0"}]
-        end
+    ```elixir
+    def deps do
+      [{:ok, "~> 1.1.0"}]
+    end
+    ```
 
 ## Usage
 
