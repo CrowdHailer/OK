@@ -143,7 +143,7 @@ defmodule OK do
   end
 
   @doc """
-  Syntactic sugar for combining multiple functions that may fail.
+  Syntactic sugar for combining multiple functions that return result tuples.
 
   The result pipe operator is inflexible in several areas.
   - values can only be passed to the first argument of a function.
@@ -151,8 +151,7 @@ defmodule OK do
 
   Both of these issues can be avoided by using a try section
 
-  *This macro is marked as BETA.
-  Issues surrounding certain edge cases for returning results remain.
+  *This macro is marked as BETA.*
   """
   defmacro try(do: {:__block__, _env, lines}) do
     IO.warn("""
@@ -184,7 +183,12 @@ defmodule OK do
   end
   defp nest([normal | []]) do
     quote do
-      unquote(normal)
+      case unquote(normal) do
+        {:ok, value} ->
+          {:ok, value}
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
   defp nest([normal | rest]) do

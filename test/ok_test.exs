@@ -29,7 +29,7 @@ defmodule OKTest do
 
   test "try normal code within block" do
     result = OK.try do
-      a <- safe_div(6, 2) # returns success(6)
+      a <- safe_div(6, 2)
       b = a + 1
       c <- safe_div(b, 2)
     end
@@ -52,6 +52,15 @@ defmodule OKTest do
       OK.failure(a + b)
     end
     assert result == {:error, 6}
+  end
+
+  test "will fail to match if the return value is not a result" do
+    assert_raise CaseClauseError, fn() ->
+      result = OK.try do
+        a <- safe_div(8, 2)
+        {:x, 5}
+      end
+    end
   end
 
   test "bind passes success value to function" do
