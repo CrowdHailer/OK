@@ -36,24 +36,22 @@ defmodule OKTest do
     assert result == {:ok, 2}
   end
 
-  test "normal code at end of operation" do
+  test "primitives as final operation" do
     result = OK.try do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
-      _ <- {:ok, a + b}
-      # a + b
+      {:ok, a + b}
     end
     assert result == {:ok, 6}
   end
 
-  test "yield block at end of operation" do
+  test "function as final operation" do
     result = OK.try do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
-      _ <- {:ok, a + b}
-      # a + b
+      OK.failure(a + b)
     end
-    assert result == {:ok, 6}
+    assert result == {:error, 6}
   end
 
   test "bind passes success value to function" do

@@ -62,7 +62,7 @@ OK.try do
   a <- safe_div(6, 2)
   b = a + 1
   c <- safe_div(b, 2)
-  _ <- {:ok, a + c}
+  {:ok, a + c}
 end
 ```
 

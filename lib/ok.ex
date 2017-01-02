@@ -153,7 +153,6 @@ defmodule OK do
 
   *This macro is marked as BETA.
   Issues surrounding certain edge cases for returning results remain.
-  To avoid these ensure that the last line of any block contains a `<-` operator.*
   """
   defmacro try(do: {:__block__, _env, lines}) do
     IO.warn("""
@@ -181,6 +180,11 @@ defmodule OK do
         result = {:error, _} ->
           result
       end
+    end
+  end
+  defp nest([normal | []]) do
+    quote do
+      unquote(normal)
     end
   end
   defp nest([normal | rest]) do
