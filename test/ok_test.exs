@@ -6,7 +6,7 @@ defmodule OKTest do
   test "try a chain of operations" do
     result = OK.try do
       a <- safe_div(8, 2)
-      b <- safe_div(a, 2)
+      _ <- safe_div(a, 2)
     end
     assert result == {:ok, 2}
   end
@@ -14,7 +14,7 @@ defmodule OKTest do
   test "try last operation failure" do
     result = OK.try do
       a <- safe_div(8, 2)
-      b <- safe_div(a, 0)
+      _ <- safe_div(a, 0)
     end
     assert result == {:error, :zero_division}
   end
@@ -22,7 +22,7 @@ defmodule OKTest do
   test "try first operation failure" do
     result = OK.try do
       a <- safe_div(8, 0)
-      b <- safe_div(a, 2)
+      _ <- safe_div(a, 2)
     end
     assert result == {:error, :zero_division}
   end
@@ -31,7 +31,7 @@ defmodule OKTest do
     result = OK.try do
       a <- safe_div(6, 2)
       b = a + 1
-      c <- safe_div(b, 2)
+      safe_div(b, 2)
     end
     assert result == {:ok, 2}
   end
@@ -56,15 +56,15 @@ defmodule OKTest do
 
   test "will fail to match if the return value is not a result" do
     assert_raise CaseClauseError, fn() ->
-      result = OK.try do
+      OK.try do
         a <- safe_div(8, 2)
-        {:x, 5}
+        {:x, a}
       end
     end
   end
 
   test "bind passes success value to function" do
-    report_func = fn (arg) -> send(self, arg) end
+    report_func = fn (arg) -> send(self(), arg) end
 
     OK.bind({:ok, :test_value}, report_func)
     assert_receive :test_value
