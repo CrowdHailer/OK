@@ -93,7 +93,9 @@ For reference.
 
 - [exceptional](https://github.com/expede/exceptional)
 - [elixir-monad](https://github.com/nickmeharry/elixir-monad)
+- [happy_with](https://github.com/vic/happy_with)
 - [monad](https://github.com/rmies/monad)
+- [ok_jose](https://github.com/vic/ok_jose)
 - [towel](https://github.com/knrz/towel)
 
 *Possible extensions to include implementing bind on structs so that errors can be better handled.
