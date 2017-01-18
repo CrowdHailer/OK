@@ -1,10 +1,10 @@
 defmodule OKTest do
   use ExUnit.Case
-  import OK, only: :macros
+  import OK, only: ["~>>": 2]
   doctest OK
 
   test "try a chain of operations" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(8, 2)
       _ <- safe_div(a, 2)
     end
@@ -12,7 +12,7 @@ defmodule OKTest do
   end
 
   test "try last operation failure" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(8, 2)
       _ <- safe_div(a, 0)
     end
@@ -20,7 +20,7 @@ defmodule OKTest do
   end
 
   test "try first operation failure" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(8, 0)
       _ <- safe_div(a, 2)
     end
@@ -28,7 +28,7 @@ defmodule OKTest do
   end
 
   test "try normal code within block" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(6, 2)
       b = a + 1
       safe_div(b, 2)
@@ -37,7 +37,7 @@ defmodule OKTest do
   end
 
   test "primitives as final operation" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
       {:ok, a + b}
@@ -46,7 +46,7 @@ defmodule OKTest do
   end
 
   test "function as final operation" do
-    result = OK.try do
+    result = OK.with do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
       OK.failure(a + b)
@@ -56,7 +56,7 @@ defmodule OKTest do
 
   test "will fail to match if the return value is not a result" do
     assert_raise CaseClauseError, fn() ->
-      OK.try do
+      OK.with do
         a <- safe_div(8, 2)
         {:x, a}
       end

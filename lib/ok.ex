@@ -143,21 +143,43 @@ defmodule OK do
   end
 
   @doc """
-  Syntactic sugar for combining multiple functions that return result tuples.
+  Combine multiple functions that may return an error.
 
-  The result pipe operator is inflexible in several areas.
+  `OK.with/1 is a strict version of the native elixir with special form.
+  It is stricter because it will only handle result tuples.
+  This however allows for more terse expressions.
+
+  When combining funcations that may fail the result pipe operator is inflexible in several areas.
   - values can only be passed to the first argument of a function.
   - values can only be passed to the next function.
 
-  Both of these issues can be avoided by using a try section
+  These limitations can be overcome by `OK.with/1`
 
-  *This macro is marked as BETA.*
+  ## Examples
+
+      iex> OK.with do
+      iex>   a <- safe_div(8, 2)
+      iex>   b <- safe_div(a, 2)
+      iex>   {:ok, a + b}
+      iex> end
+      {:ok, 6.0}
+
+      iex> OK.with do
+      iex>   a <- safe_div(8, 2)
+      iex>   b <- safe_div(a, 0)
+      iex>   {:ok, a + b}
+      iex> end
+      {:error, :zero_division}
   """
+  defmacro with(do: {:__block__, _env, lines}) do
+    nest(lines)
+  end
+
+  require Logger
+
+  @doc false
   defmacro try(do: {:__block__, _env, lines}) do
-    IO.warn("""
-    BETA: The API of the try macro is marked as beta.
-    See Github repo (https://github.com/CrowdHailer/OK) for outstanding issues.
-    """)
+    Logger.warn("DEPRECIATED: `OK.try` has been replaced with `OK.with`")
     nest(lines)
   end
 
