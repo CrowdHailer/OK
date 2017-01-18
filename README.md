@@ -12,7 +12,7 @@
 
     ```elixir
     def deps do
-      [{:ok, "~> 1.2.1"}]
+      [{:ok, "~> 1.3.0"}]
     end
     ```
 
@@ -27,13 +27,13 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-### Result pipelines '~>>'
+### Result pipelines `~>>`
 
 This macro allows pipelining result tuples through a pipeline of functions.
 The `~>>` macro is the is equivalent to bind/flat_map in other languages.
 
 ```elixir
-import OK, only: :macros
+import OK, only: ["~>>": 2]
 
 def get_employee_data(file, name) do
   {:ok, file}
@@ -51,29 +51,31 @@ get_employee_data("my_company/employees.json")
 |> handle_user_data
 ```
 
-### Result blocks *BETA*
+### Result blocks `with`
 
 For situations when the pipeline macro is not sufficiently flexible.
 
 To extract a value for an ok tuple use the `<-` operator.
 
 ```elixir
+require OK
+
 OK.try do
-  a <- safe_div(6, 2)
-  b = a + 1
-  c <- safe_div(b, 2)
-  {:ok, a + c}
+  user <- fetch_user(1)
+  cart <- fetch_cart(1)
+  order = checkout(cart, user)
+  save_order(order)
 end
 ```
 
 The above code is equivalent to
 ```elixir
-case safe_div(6, 2) do
-  {:ok, a} ->
-    b = a + 1
-    case safe_div(b, 2) do
-      result = {:ok, c} ->
-        {:ok, a + c}
+case fetch_user(1) do
+  {:ok, user} ->
+    case fetch_cart(1) do
+      {:ok, cart} ->
+        order = checkout(cart, user)
+        save_order(order)
       {:error, reason} ->
         {:error, reason}
     end
