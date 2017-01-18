@@ -60,7 +60,7 @@ To extract a value for an ok tuple use the `<-` operator.
 ```elixir
 require OK
 
-OK.try do
+OK.with do
   user <- fetch_user(1)
   cart <- fetch_cart(1)
   order = checkout(cart, user)
