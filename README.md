@@ -51,6 +51,8 @@ get_employee_data("my_company/employees.json")
 |> handle_user_data
 ```
 
+Code structured like this is an example of [railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/).
+
 ### Result blocks `with`
 
 For situations when the pipeline macro is not sufficiently flexible.
@@ -84,10 +86,23 @@ case fetch_user(1) do
 end
 ```
 
-### Railway programming
+### Semantic matches
 
-`OK` can be used for railway programming.
-An explanation of this is available in this [blog](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
+`OK` provides macros for matching on success and failure cases.
+This allows for code to check if a result returned from a function was a success or failure.
+
+This check can be done without knowledge about how the result is structured to represent a success or failure
+
+```elixir
+import OK, only: [success: 2, failure: 2]
+
+case fetch_user(id) do
+  success(user) ->
+    user
+  failure(:not_found) ->
+    create_guest_user()
+end
+```
 
 ### Similar Libraries
 
