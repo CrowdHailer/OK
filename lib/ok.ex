@@ -52,8 +52,11 @@ defmodule OK do
       iex> OK.success(:value)
       {:ok, :value}
   """
-  def success(value), do: {:ok, value}
-
+  defmacro success(value) do
+    quote do
+      {:ok, unquote(value)}
+    end
+  end
   @doc """
   Creates a failed result tuple with the given reason.
 
@@ -62,7 +65,11 @@ defmodule OK do
       iex> OK.failure("reason")
       {:error, "reason"}
   """
-  def failure(reason), do: {:error, reason}
+  defmacro failure(reason) do
+    quote do
+      {:error, unquote(reason)}
+    end
+  end
 
   @doc """
   Result pipe operator.

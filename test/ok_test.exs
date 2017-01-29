@@ -1,6 +1,6 @@
 defmodule OKTest do
   use ExUnit.Case
-  import OK, only: ["~>>": 2]
+  import OK, only: [~>>: 2, success: 1, failure: 1]
   doctest OK
 
   test "try a chain of operations" do
@@ -61,6 +61,16 @@ defmodule OKTest do
         {:x, a}
       end
     end
+  end
+
+  test "matching on a success case" do
+    success(value) = {:ok, :value}
+    assert :value == value
+  end
+
+  test "matching on a failure case" do
+    failure(reason) = {:error, :reason}
+    assert :reason == reason
   end
 
   test "bind passes success value to function" do
