@@ -27,6 +27,8 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
+[Forum discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
+
 ### Result pipelines `~>>`
 
 This macro allows pipelining result tuples through a pipeline of functions.
@@ -52,6 +54,8 @@ get_employee_data("my_company/employees.json")
 ```
 
 Code structured like this is an example of [railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/).
+
+[Forum discussion on error handling in pipelines](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932)
 
 ### Result blocks `with`
 
@@ -85,6 +89,8 @@ case fetch_user(1) do
     {:error, reason}
 end
 ```
+
+[Forum discussion on `with` naming](https://elixirforum.com/t/alternative-to-with-specific-to-result-tuples/3264)
 
 ### Semantic matches
 
