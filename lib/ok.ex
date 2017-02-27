@@ -181,6 +181,19 @@ defmodule OK do
   defmacro with(do: {:__block__, _env, lines}) do
     nest(lines)
   end
+  defmacro with(do: {:__block__, _, normal}, else: exceptional) do
+    quote do
+      unquote(nest(normal))
+      |> case do
+        {:ok, value} ->
+          {:ok, value}
+        {:error, reason} ->
+          case reason do
+            unquote(exceptional)
+          end
+      end
+    end
+  end
 
   require Logger
 
