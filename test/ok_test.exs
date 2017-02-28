@@ -98,6 +98,18 @@ defmodule OKTest do
     end
   end
 
+  test "will fail to match if the return value of exceptional block is not a result" do
+    assert_raise CaseClauseError, fn() ->
+      OK.with do
+        a <- safe_div(8, 2)
+        _ <- safe_div(a, 0)
+      else
+        :zero_division ->
+          :not_a_result
+      end
+    end
+  end
+
   test "matching on a success case" do
     success(value) = {:ok, :value}
     assert :value == value

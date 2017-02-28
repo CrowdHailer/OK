@@ -81,8 +81,8 @@ OK.with do
   a <- safe_div(8, 2)
   _ <- safe_div(a, 0)
 else
-  :zero_division ->
-    {:ok, :inf}
+  :zero_division -> # matches on reason
+    {:ok, :inf}     # must return a new success or failure
 end
 ```
 

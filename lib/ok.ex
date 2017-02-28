@@ -195,6 +195,10 @@ defmodule OK do
           case reason do
             unquote(exceptional_clauses)
           end
+          |> case do
+            result = {tag, _} when tag in [:ok, :error] ->
+              result
+          end
       end
     end
   end
