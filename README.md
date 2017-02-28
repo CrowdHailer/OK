@@ -74,7 +74,21 @@ OK.with do
 end
 ```
 
-The above code is equivalent to
+`Ok.with/1` supports an else block that can be used for handling error values.
+
+```elixir
+OK.with do
+  a <- safe_div(8, 2)
+  _ <- safe_div(a, 0)
+else
+  :zero_division ->
+    {:ok, :inf}
+end
+```
+
+*Unlike native with any unmatched error case does not through an error and will just be passed as the return value*
+
+The cart example above is equivalent to
 ```elixir
 case fetch_user(1) do
   {:ok, user} ->
