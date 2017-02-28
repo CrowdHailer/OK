@@ -11,7 +11,7 @@ defmodule OKTest do
     assert result == {:ok, 2}
   end
 
-  test "handle an error" do
+  test "correct an error" do
     result = OK.with do
       a <- safe_div(8, 2)
       _ <- safe_div(a, 0)
@@ -20,6 +20,30 @@ defmodule OKTest do
         success(:inf)
     end
     assert result == {:ok, :inf}
+  end
+
+  test "modify an error" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      _ <- safe_div(a, 0)
+    else
+      :other ->
+        {:ok, :bob}
+      :zero_division ->
+        failure(:inf)
+    end
+    assert result == {:error, :inf}
+  end
+
+  test "pass through an error" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      _ <- safe_div(a, 0)
+    else
+      :other ->
+        {:ok, :bob}
+    end
+    assert result == {:error, :zero_division}
   end
 
   test "try last operation failure" do

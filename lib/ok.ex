@@ -182,6 +182,10 @@ defmodule OK do
     nest(lines)
   end
   defmacro with(do: {:__block__, _, normal}, else: exceptional) do
+    exceptional_clauses = exceptional ++ (quote do
+      reason ->
+        {:error, reason}
+    end)
     quote do
       unquote(nest(normal))
       |> case do
@@ -189,7 +193,7 @@ defmodule OK do
           {:ok, value}
         {:error, reason} ->
           case reason do
-            unquote(exceptional)
+            unquote(exceptional_clauses)
           end
       end
     end
