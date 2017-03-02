@@ -22,7 +22,7 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-The following sections cover this is used in `OK.with`, `~>>`, and semantic pattern matching.
+The following sections cover how these result tuples are used in `OK.with`, `~>>` (OK pipeline operator), and semantic pattern matching.
 
 ### `OK.with`
 
