@@ -38,8 +38,8 @@ _NB: Statements are **not** delimited by commas as with the native Elixir `with`
 require OK
 
 OK.with do
-  user <- fetch_user(1)        # <- operator means func returns {:ok, user}
-  cart <- fetch_cart(1)        # <- again, {:ok, cart}
+  user <- fetch_user(1)        # `<-` operator means func returns {:ok, user}
+  cart <- fetch_cart(1)        # `<-` again, {:ok, cart}
   order = checkout(cart, user) # `=` allows pattern matching on non-tagged funcs
   save_order(order)            # Returns a tuple.
 end
