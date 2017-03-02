@@ -150,32 +150,52 @@ defmodule OK do
   end
 
   @doc """
-  Combine multiple functions that may return an error.
+  Composes multiple functions similar to Elixir's native `with` construct.
+  
+  `OK.with/1` enables more terse and readable expressions however, eliminating
+  noise and regaining precious horizontal real estate in the process. It does 
+  this by extracting result tuples when using the `<-` operator.
+  
+  For example, in native Elixir, you could write a `with` statement as follows:
+  
+  ```elixir
+  with {:ok, a} <- save_div(8,2),
+       {:ok, b} <- save_div(a,2),
+       do: {:ok, b}
+  ```
+  
+  With `OK.with/1`, this can be rewritten as follows:
+  ```elixir
+  OK.with do
+    a <- save_div(8,2)
+    b <- save_div(a,2)
+    {:ok, b}
+  end
+  ```
 
-  `OK.with/1 is a strict version of the native elixir with special form.
-  It is stricter because it will only handle result tuples.
-  This however allows for more terse expressions.
-
-  When combining funcations that may fail the result pipe operator is inflexible in several areas.
+  ### Compared to `~>>`
+  
+  When combining functions that may fail, the OK pipe operator is inflexible in
+  a couple areas: 
   - values can only be passed to the first argument of a function.
   - values can only be passed to the next function.
 
-  These limitations can be overcome by `OK.with/1`
+  These limitations can be overcome by `OK.with/1`.
 
   ## Examples
 
       iex> OK.with do
-      iex>   a <- safe_div(8, 2)
-      iex>   b <- safe_div(a, 2)
-      iex>   {:ok, a + b}
-      iex> end
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...>   {:ok, a + b}
+      ...> end
       {:ok, 6.0}
 
       iex> OK.with do
-      iex>   a <- safe_div(8, 2)
-      iex>   b <- safe_div(a, 0)
-      iex>   {:ok, a + b}
-      iex> end
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0)
+      ...>   {:ok, a + b}
+      ...> end
       {:error, :zero_division}
   """
   defmacro with(do: {:__block__, _env, lines}) do
