@@ -90,8 +90,7 @@ else
 end
 ```
 
-*Unlike native with any unmatched error case does not throw an error and will just be passed as the return value*
-
+*Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
 
 ### Result Pipeline Operator `~>>`
 
