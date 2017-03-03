@@ -2,6 +2,8 @@
 
 **Elegant handling of idiomatic Erlang conventions of `:ok`/`:error` tuples in Elixir. This includes more concise and readable `with` statement syntax, a tagged-enabled pipeline operator, and semantic pattern matching.**
 
+* [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
+
 ## Installation
 
 [Available in Hex](https://hex.pm/packages/ok), the package can be installed as:
@@ -25,6 +27,11 @@ The OK module works with result tuples by treating them as a result monad.
 The following sections cover how these result tuples are used in `OK.with`, `~>>` (OK pipeline operator), and semantic pattern matching.
 
 ### `OK.with`
+
+`OK.with` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
+
+* [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
+* [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
 
 #### Basic Usage
 
@@ -78,7 +85,7 @@ end
 
 ####  Error Matching
 
-`OK.with` accepts also an else block which can be used for handling error results. Note that you pattern match on the _untagged_ error value, often denoted as `reason` in e.g. `{:error, reason}`.
+`OK.with` also accepts an else block which can be used for handling error results. Note that you pattern match on the _untagged_ error value, often denoted as `reason` in e.g. `{:error, reason}`.
 
 ```elixir
 OK.with do
@@ -126,13 +133,9 @@ case fetch_user(id) do
 end
 ```
 
-## External Links and Resources
+## Additional External Links and Resources
 
-* [OK on Hex Docs](https://hex.pm/packages/ok)
-* [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
 * Elixir Forum
-  * [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
-  * [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
   * [OK v1 library](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932/)
 * [Railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
 * Similar Libraries
