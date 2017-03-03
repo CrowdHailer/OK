@@ -159,16 +159,16 @@ defmodule OK do
   For example, in native Elixir, you could write a `with` statement as follows:
   
   ```elixir
-  with {:ok, a} <- save_div(8,2),
-       {:ok, b} <- save_div(a,2),
+  with {:ok, a} <- safe_div(8,2),
+       {:ok, b} <- safe_div(a,2),
        do: {:ok, b}
   ```
   
   With `OK.with/1`, this can be rewritten as follows:
   ```elixir
   OK.with do
-    a <- save_div(8,2)
-    b <- save_div(a,2)
+    a <- safe_div(8,2)
+    b <- safe_div(a,2)
     {:ok, b}
   end
   ```
