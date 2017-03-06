@@ -1,22 +1,9 @@
 # OK
 
-**Elegant handling of idiomatic Erlang conventions of `:ok`/`:error` tuples in Elixir. This includes more concise and readable `with` statement syntax, a tagged-enabled pipeline operator, and semantic pattern matching.**
+**Elegant error handling for Elixir. Built on the solid foundation of the result monad.**
 
-* [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
-
-## Installation
-
-[Available in Hex](https://hex.pm/packages/ok), the package can be installed as:
-
-  1. Add ok to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:ok, "~> 1.5.0"}]
-    end
-    ```
-    
-## Usage
+- [Install from Hex](https://hex.pm/packages/ok)
+- [Documentation available on hexdoc](https://hexdocs.pm/ok)
 
 The OK module works with result tuples by treating them as a result monad.
 
@@ -24,7 +11,7 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-The following sections cover how these result tuples are used in `OK.with`, `~>>` (OK pipeline operator), and semantic pattern matching.
+See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation.
 
 ### `OK.with`
 
@@ -89,7 +76,7 @@ end
 
 ```elixir
 OK.with do
-  a <- safe_div(8, 2) 
+  a <- safe_div(8, 2)
   _ <- safe_div(a, 0) # returns {:error, :zero_division}
 else
   :zero_division -> # matches on the untagged :zero_division
