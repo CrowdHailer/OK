@@ -1,22 +1,9 @@
 # OK
 
-**Elegant handling of idiomatic Erlang conventions of `:ok`/`:error` tuples in Elixir. This includes more concise and readable `with` statement syntax, a tagged-enabled pipeline operator, and semantic pattern matching.**
+**Elegant error handling for Elixir. Built on the solid foundation of the result monad.**
 
-- [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
-
-## Installation
-
-[Available in Hex](https://hex.pm/packages/ok), the package can be installed as:
-
-  1. Add ok to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:ok, "~> 1.5.0"}]
-    end
-    ```
-    
-## Usage
+- [Install from Hex](https://hex.pm/packages/ok)
+- [Documentation available on hexdoc](https://hexdocs.pm/ok)
 
 The OK module works with result tuples by treating them as a result monad.
 
@@ -24,7 +11,7 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-The following sections cover how these result tuples are used in `OK.with`, `~>>` (OK pipeline operator), and semantic pattern matching.
+See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation.
 
 ### `OK.with`
 
@@ -37,7 +24,8 @@ The following sections cover how these result tuples are used in `OK.with`, `~>>
 
 - Use the `<-` operator to match & extract a value for an `:ok` tuple.
 - Use the `=` operator as you normally would for pattern matching an untagged result.
-- The last line should either be a function that returns the tuple, or the literal tuple itself.
+- Return result must also be in the form of a tagged tuple.
+- _Optionally_ pattern match on some errors in an `else` block.
 
 _NB: Statements are **not** delimited by commas as with the native Elixir `with` construct._
 
@@ -48,22 +36,7 @@ OK.with do
   user <- fetch_user(1)        # `<-` operator means func returns {:ok, user}
   cart <- fetch_cart(1)        # `<-` again, {:ok, cart}
   order = checkout(cart, user) # `=` allows pattern matching on non-tagged funcs
-  save_order(order)            # Returns a tuple.
-end
-```
-
-The above could also be written as
-
-```elixir
-require OK
-
-OK.with do
-  user <- fetch_user(1)
-  cart <- fetch_cart(1)
-  order = checkout(cart, user)
-  saved <- save_order(order)
-  {:ok, saved}                  # The last statement must return a tuple.
-end
+  save_order(order)            # Returns an ok/error tuple
 ```
 
 The cart example above is equivalent to the following nested `case` statements
@@ -83,21 +56,42 @@ case fetch_user(1) do
 end
 ```
 
-####  Error Matching
-
-`OK.with` also accepts an else block which can be used for handling error results. Note that you pattern match on the _untagged_ error value, often denoted as `reason` in e.g. `{:error, reason}`.
+You can pattern match on errors as well in an `else` block:
 
 ```elixir
+require OK
+
 OK.with do
-  a <- safe_div(8, 2) 
-  _ <- safe_div(a, 0) # returns {:error, :zero_division}
-else
-  :zero_division -> # matches on the untagged :zero_division
-    {:ok, :inf}     # return statements are always tagged.
+  user <- fetch_user(1)
+  cart <- fetch_cart(1)
+  order = checkout(cart, user)
+  save_order(order)
+else 
+  :user_not_found ->           # Match on untagged reason
+    {:error, :unauthorized}    # Return a literal error tuple
 end
 ```
 
+Note that the return for the error pattern matches on the extracted error reason, but the return expression must still be the full tuple. 
+
 *Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
+
+You can also use `OK.success` and `OK.failure` macros as well:
+
+```elixir
+require OK
+
+OK.with do
+  user <- fetch_user(1)
+  cart <- fetch_cart(1)
+  order = checkout(cart, user)
+  saved <- save_order(order)
+  OK.success saved
+else 
+  :user_not_found ->
+    OK.failure :unauthorized
+end
+```
 
 ### Result Pipeline Operator `~>>`
 
