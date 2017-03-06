@@ -151,36 +151,10 @@ defmodule OK do
 
   @doc """
   Composes multiple functions similar to Elixir's native `with` construct.
-  
+
   `OK.with/1` enables more terse and readable expressions however, eliminating
-  noise and regaining precious horizontal real estate in the process. It does 
+  noise and regaining precious horizontal real estate in the process. It does
   this by extracting result tuples when using the `<-` operator.
-  
-  For example, in native Elixir, you could write a `with` statement as follows:
-  
-  ```elixir
-  with {:ok, a} <- safe_div(8,2),
-       {:ok, b} <- safe_div(a,2),
-       do: {:ok, b}
-  ```
-  
-  With `OK.with/1`, this can be rewritten as follows:
-  ```elixir
-  OK.with do
-    a <- safe_div(8,2)
-    b <- safe_div(a,2)
-    {:ok, b}
-  end
-  ```
-
-  ### Compared to `~>>`
-  
-  When combining functions that may fail, the OK pipe operator is inflexible in
-  a couple areas: 
-  - values can only be passed to the first argument of a function.
-  - values can only be passed to the next function.
-
-  These limitations can be overcome by `OK.with/1`.
 
   ## Examples
 
@@ -197,6 +171,12 @@ defmodule OK do
       ...>   {:ok, a + b}
       ...> end
       {:error, :zero_division}
+
+      # Equivalent native with version
+      iex> with {:ok, a} <- safe_div(8,2),
+      ...>     {:ok, b} <- safe_div(a,2),
+      ...>     do: {:ok, b}
+      {:ok, 6.0}
   """
   defmacro with(do: {:__block__, _env, lines}) do
     nest(lines)
