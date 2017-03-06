@@ -2,7 +2,7 @@
 
 **Elegant handling of idiomatic Erlang conventions of `:ok`/`:error` tuples in Elixir. This includes more concise and readable `with` statement syntax, a tagged-enabled pipeline operator, and semantic pattern matching.**
 
-* [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
+- [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html)
 
 ## Installation
 
@@ -30,14 +30,14 @@ The following sections cover how these result tuples are used in `OK.with`, `~>>
 
 `OK.with` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
 
-* [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
-* [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
+- [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
+- [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
 
 #### Basic Usage
 
-* Use the `<-` operator to match & extract a value for an `:ok` tuple.
-* Use the `=` operator as you normally would for pattern matching an untagged result.
-* The last line should either be a function that returns the tuple, or the literal tuple itself.
+- Use the `<-` operator to match & extract a value for an `:ok` tuple.
+- Use the `=` operator as you normally would for pattern matching an untagged result.
+- The last line should either be a function that returns the tuple, or the literal tuple itself.
 
 _NB: Statements are **not** delimited by commas as with the native Elixir `with` construct._
 
@@ -135,13 +135,13 @@ end
 
 ## Additional External Links and Resources
 
-* Elixir Forum
-  * [OK v1 library](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932/)
-* [Railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
-* Similar Libraries
-  * [exceptional](https://github.com/expede/exceptional)
-  * [elixir-monad](https://github.com/nickmeharry/elixir-monad)
-  * [happy_with](https://github.com/vic/happy_with)
-  * [monad](https://github.com/rmies/monad)
-  * [ok_jose](https://github.com/vic/ok_jose)
-  * [towel](https://github.com/knrz/towel)
+- Elixir Forum
+  - [OK v1 library](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932/)
+- [Railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
+- Similar Libraries
+  - [exceptional](https://github.com/expede/exceptional)
+  - [elixir-monad](https://github.com/nickmeharry/elixir-monad)
+  - [happy_with](https://github.com/vic/happy_with)
+  - [monad](https://github.com/rmies/monad)
+  - [ok_jose](https://github.com/vic/ok_jose)
+  - [towel](https://github.com/knrz/towel)
