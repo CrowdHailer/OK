@@ -5,6 +5,8 @@
 - [Install from Hex](https://hex.pm/packages/ok)
 - [Documentation available on hexdoc](https://hexdocs.pm/ok)
 
+## Result tuples
+
 The OK module works with result tuples by treating them as a result monad.
 
 ```elixir
@@ -13,9 +15,9 @@ The OK module works with result tuples by treating them as a result monad.
 
 See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation.
 
-### `OK.with`
+## OK.with
 
-`OK.with` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
+`OK.with/1` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with/1` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
 
 - [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
 - [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
@@ -66,13 +68,13 @@ OK.with do
   cart <- fetch_cart(1)
   order = checkout(cart, user)
   save_order(order)
-else 
+else
   :user_not_found ->           # Match on untagged reason
     {:error, :unauthorized}    # Return a literal error tuple
 end
 ```
 
-Note that the `else` block pattern matches on the extracted error reason, but the return expression must still be the full tuple. 
+Note that the `else` block pattern matches on the extracted error reason, but the return expression must still be the full tuple.
 
 *Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
 
@@ -87,13 +89,13 @@ OK.with do
   order = checkout(cart, user)
   saved <- save_order(order)
   OK.success saved
-else 
+else
   :user_not_found ->
     OK.failure :unauthorized
 end
 ```
 
-### Result Pipeline Operator `~>>`
+## Result Pipeline Operator `~>>`
 
 This macro allows pipelining result tuples through multiple functions for an extremely concise happy path.
 The `~>>` macro is equivalent to bind/flat_map in other languages.
@@ -109,7 +111,7 @@ def get_employee_data(file, name) do
 end
 ```
 
-### Semantic matches
+## Semantic matches
 
 `OK` provides macros for matching on success and failure cases.
 This allows for code to check if a result returned from a function was a success or failure.
