@@ -72,11 +72,11 @@ else
 end
 ```
 
-Note that the return for the error pattern matches on the extracted error reason, but the return expression must still be the full tuple. 
+Note that the `else` block pattern matches on the extracted error reason, but the return expression must still be the full tuple. 
 
 *Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
 
-You can also use `OK.success` and `OK.failure` macros as well:
+You can also use `OK.success` and `OK.failure` macros:
 
 ```elixir
 require OK
@@ -95,8 +95,8 @@ end
 
 ### Result Pipeline Operator `~>>`
 
-This macro allows pipelining result tuples through a pipeline of functions.
-The `~>>` macro is the is equivalent to bind/flat_map in other languages.
+This macro allows pipelining result tuples through multiple functions for an extremely concise happy path.
+The `~>>` macro is equivalent to bind/flat_map in other languages.
 
 ```elixir
 import OK only: ["~>>": 2]
