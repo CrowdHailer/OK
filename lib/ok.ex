@@ -150,33 +150,33 @@ defmodule OK do
   end
 
   @doc """
-  Combine multiple functions that may return an error.
+  Composes multiple functions similar to Elixir's native `with` construct.
 
-  `OK.with/1 is a strict version of the native elixir with special form.
-  It is stricter because it will only handle result tuples.
-  This however allows for more terse expressions.
-
-  When combining funcations that may fail the result pipe operator is inflexible in several areas.
-  - values can only be passed to the first argument of a function.
-  - values can only be passed to the next function.
-
-  These limitations can be overcome by `OK.with/1`
+  `OK.with/1` enables more terse and readable expressions however, eliminating
+  noise and regaining precious horizontal real estate in the process. It does
+  this by extracting result tuples when using the `<-` operator.
 
   ## Examples
 
       iex> OK.with do
-      iex>   a <- safe_div(8, 2)
-      iex>   b <- safe_div(a, 2)
-      iex>   {:ok, a + b}
-      iex> end
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...>   {:ok, a + b}
+      ...> end
       {:ok, 6.0}
 
       iex> OK.with do
-      iex>   a <- safe_div(8, 2)
-      iex>   b <- safe_div(a, 0)
-      iex>   {:ok, a + b}
-      iex> end
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0)
+      ...>   {:ok, a + b}
+      ...> end
       {:error, :zero_division}
+
+      # Equivalent native with version
+      iex> with {:ok, a} <- safe_div(8,2),
+      ...>      {:ok, b} <- safe_div(a,2),
+      ...>      do: {:ok, b}
+      {:ok, 6.0}
   """
   defmacro with(do: {:__block__, _env, lines}) do
     nest(lines)

@@ -1,25 +1,9 @@
 # OK
 
-**Elegant error handling in elixir pipelines. See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation**
+**Elegant error handling for Elixir. Built on the solid foundation of the result monad.**
 
-[Documentation for OK is available on hexdoc](https://hexdocs.pm/ok)
-
-## Installation
-
-[Available in Hex](https://hex.pm/packages/ok), the package can be installed as:
-
-  1. Add ok to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:ok, "~> 1.5.0"}]
-    end
-    ```
-
-## Usage
-
-The erlang convention for functions that can fail is to return a result tuple.
-A result tuple is a two-tuple tagged either as a success(`:ok`) or a failure(`:error`).
+- [Install from Hex](https://hex.pm/packages/ok)
+- [Documentation available on hexdoc](https://hexdocs.pm/ok)
 
 The OK module works with result tuples by treating them as a result monad.
 
@@ -27,68 +11,36 @@ The OK module works with result tuples by treating them as a result monad.
 {:ok, value} | {:error, reason}
 ```
 
-[Forum discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
+See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation.
 
-### Result pipelines `~>>`
+### `OK.with`
 
-This macro allows pipelining result tuples through a pipeline of functions.
-The `~>>` macro is the is equivalent to bind/flat_map in other languages.
+`OK.with` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
 
-```elixir
-import OK, only: ["~>>": 2]
+- [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
+- [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
 
-def get_employee_data(file, name) do
-  {:ok, file}
-  ~>> File.read
-  ~>> Poison.decode
-  ~>> Dict.fetch(name)
-end
+#### Basic Usage
 
-def handle_user_data({:ok, data}), do: IO.puts("Contact at #{data["email"]}")
-def handle_user_data({:error, :enoent}), do: IO.puts("File not found")
-def handle_user_data({:error, {:invalid, _}}), do: IO.puts("Invalid JSON")
-def handle_user_data({:error, :key_not_found}), do: IO.puts("Could not find employee")
+- Use the `<-` operator to match & extract a value for an `:ok` tuple.
+- Use the `=` operator as you normally would for pattern matching an untagged result.
+- Return result must also be in the form of a tagged tuple.
+- _Optionally_ pattern match on some errors in an `else` block.
 
-get_employee_data("my_company/employees.json")
-|> handle_user_data
-```
-
-Code structured like this is an example of [railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/).
-
-[Forum discussion on error handling in pipelines](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932)
-
-### Result blocks `with`
-
-For situations when the pipeline macro is not sufficiently flexible.
-
-To extract a value for an ok tuple use the `<-` operator.
+_NB: Statements are **not** delimited by commas as with the native Elixir `with` construct._
 
 ```elixir
 require OK
 
 OK.with do
-  user <- fetch_user(1)
-  cart <- fetch_cart(1)
-  order = checkout(cart, user)
-  save_order(order)
-end
+  user <- fetch_user(1)        # `<-` operator means func returns {:ok, user}
+  cart <- fetch_cart(1)        # `<-` again, {:ok, cart}
+  order = checkout(cart, user) # `=` allows pattern matching on non-tagged funcs
+  save_order(order)            # Returns an ok/error tuple
 ```
 
-`Ok.with/1` supports an else block that can be used for handling error values.
+The cart example above is equivalent to the following nested `case` statements
 
-```elixir
-OK.with do
-  a <- safe_div(8, 2)
-  _ <- safe_div(a, 0)
-else
-  :zero_division -> # matches on reason
-    {:ok, :inf}     # must return a new success or failure
-end
-```
-
-*Unlike native with any unmatched error case does not through an error and will just be passed as the return value*
-
-The cart example above is equivalent to
 ```elixir
 case fetch_user(1) do
   {:ok, user} ->
@@ -104,7 +56,58 @@ case fetch_user(1) do
 end
 ```
 
-[Forum discussion on `with` naming](https://elixirforum.com/t/alternative-to-with-specific-to-result-tuples/3264)
+You can pattern match on errors as well in an `else` block:
+
+```elixir
+require OK
+
+OK.with do
+  user <- fetch_user(1)
+  cart <- fetch_cart(1)
+  order = checkout(cart, user)
+  save_order(order)
+else 
+  :user_not_found ->           # Match on untagged reason
+    {:error, :unauthorized}    # Return a literal error tuple
+end
+```
+
+Note that the return for the error pattern matches on the extracted error reason, but the return expression must still be the full tuple. 
+
+*Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
+
+You can also use `OK.success` and `OK.failure` macros as well:
+
+```elixir
+require OK
+
+OK.with do
+  user <- fetch_user(1)
+  cart <- fetch_cart(1)
+  order = checkout(cart, user)
+  saved <- save_order(order)
+  OK.success saved
+else 
+  :user_not_found ->
+    OK.failure :unauthorized
+end
+```
+
+### Result Pipeline Operator `~>>`
+
+This macro allows pipelining result tuples through a pipeline of functions.
+The `~>>` macro is the is equivalent to bind/flat_map in other languages.
+
+```elixir
+import OK only: ["~>>": 2]
+
+def get_employee_data(file, name) do
+  {:ok, file}
+  ~>> File.read
+  ~>> Poison.decode
+  ~>> Dict.fetch(name)
+end
+```
 
 ### Semantic matches
 
@@ -124,17 +127,15 @@ case fetch_user(id) do
 end
 ```
 
-### Similar Libraries
+## Additional External Links and Resources
 
-For reference.
-
-- [exceptional](https://github.com/expede/exceptional)
-- [elixir-monad](https://github.com/nickmeharry/elixir-monad)
-- [happy_with](https://github.com/vic/happy_with)
-- [monad](https://github.com/rmies/monad)
-- [ok_jose](https://github.com/vic/ok_jose)
-- [towel](https://github.com/knrz/towel)
-
-*Possible extensions to include implementing bind on structs so that errors can be better handled.
-Implement a catch functionality for functions that error.
-Implement existing monad library protocols so can extend similar DB functionality e.g. slick*
+- Elixir Forum
+  - [OK v1 library](https://elixirforum.com/t/ok-elegant-error-handling-for-elixir-pipelines-version-1-0-released/1932/)
+- [Railway programming](http://www.zohaib.me/railway-programming-pattern-in-elixir/)
+- Similar Libraries
+  - [exceptional](https://github.com/expede/exceptional)
+  - [elixir-monad](https://github.com/nickmeharry/elixir-monad)
+  - [happy_with](https://github.com/vic/happy_with)
+  - [monad](https://github.com/rmies/monad)
+  - [ok_jose](https://github.com/vic/ok_jose)
+  - [towel](https://github.com/knrz/towel)
