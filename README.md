@@ -37,6 +37,7 @@ OK.with do
   cart <- fetch_cart(1)        # `<-` again, {:ok, cart}
   order = checkout(cart, user) # `=` allows pattern matching on non-tagged funcs
   save_order(order)            # Returns an ok/error tuple
+end
 ```
 
 The cart example above is equivalent to the following nested `case` statements
