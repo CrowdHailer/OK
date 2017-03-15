@@ -161,7 +161,21 @@ defmodule OK do
       iex> OK.with do
       ...>   a <- safe_div(8, 2)
       ...>   b <- safe_div(a, 2)
+      ...>   OK.success a + b
+      ...> end
+      {:ok, 6.0}
+
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
       ...>   {:ok, a + b}
+      ...> end
+      {:ok, 6.0}
+
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b = 2.0
+      ...>   OK.success a + b
       ...> end
       {:ok, 6.0}
 
@@ -172,11 +186,14 @@ defmodule OK do
       ...> end
       {:error, :zero_division}
 
-      # Equivalent native with version
-      iex> with {:ok, a} <- safe_div(8,2),
-      ...>      {:ok, b} <- safe_div(a,2),
-      ...>      do: {:ok, b}
-      {:ok, 6.0}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0)
+      ...>   {:ok, a + b}
+      ...> else
+      ...>   :zero_division -> OK.failure "You cannot divide by 0."
+      ...> end
+      {:error, "You cannot divide by 0."}
   """
   defmacro with(do: {:__block__, _env, lines}) do
     nest(lines)
@@ -205,9 +222,11 @@ defmodule OK do
 
   require Logger
 
-  @doc false
+  @doc """
+  DEPRECATED: `OK.try` has been replaced with `OK.with`
+  """
   defmacro try(do: {:__block__, _env, lines}) do
-    Logger.warn("DEPRECIATED: `OK.try` has been replaced with `OK.with`")
+    Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
     nest(lines)
   end
 

@@ -71,7 +71,16 @@ defmodule OKTest do
     assert result == {:ok, 2}
   end
 
-  test "primitives as final operation" do
+  test "primitives as final operation - ok literal" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      {:ok, b}
+    end
+    assert result == {:ok, 2}
+  end
+
+  test "primitives as final operation - ok literal func" do
     result = OK.with do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
@@ -80,13 +89,42 @@ defmodule OKTest do
     assert result == {:ok, 6}
   end
 
-  test "function as final operation" do
+  test "primitives as final operation - OK.success literal" do
     result = OK.with do
       a <- safe_div(8, 2)
       b <- safe_div(a, 2)
-      OK.failure(a + b)
+      # {:ok, a + b}
+      # OK.success a + b
+      OK.success b
     end
-    assert result == {:error, 6}
+    assert result == {:ok, 2}
+  end
+
+  test "primitives as final operation - OK.success func" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      OK.success a + b
+    end
+    assert result == {:ok, 6}
+  end
+
+  test "function as final operation - pass" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      pass_func(b)
+    end
+    assert result == {:ok, 2.0}
+  end
+
+  test "function as final operation - fail" do
+    result = OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      fail_func(b)
+    end
+    assert result == {:error, 2.0}
   end
 
   test "will fail to match if the return value is not a result" do
@@ -171,5 +209,13 @@ defmodule OKTest do
   end
   def safe_div(a, b) do
     {:ok, a / b}
+  end
+  
+  def pass_func(x) do
+    {:ok, x}
+  end
+  
+  def fail_func(x) do
+    {:error, x}
   end
 end
