@@ -231,7 +231,6 @@ defmodule OK do
   end
 
   defp nest([{:<-, _, [left, right]} | []]) do
-    # last line of with block is a <- extraction
     quote do
       case unquote(right) do
         result = {:ok, unquote(left)} ->
@@ -251,21 +250,7 @@ defmodule OK do
       end
     end
   end
-  defp nest([{:ok, _} = normal | []]) do
-    # last line of the with block is an ok literal
-    quote do
-      unquote(normal)
-    end
-  end
-  
-  defp nest([{{:., _, [{:__aliases__, _, [:OK]}, :success]}, _, _} = normal | []]) do
-    # last line of the with block is an OK.success macro line
-    quote do
-      unquote(normal)
-    end
-  end
   defp nest([normal | []]) do
-    # last line of the with block is a func
     quote do
       case unquote(normal) do
         {:ok, value} ->
