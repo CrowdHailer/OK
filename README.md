@@ -1,6 +1,6 @@
 # OK
 
-**Elegant error handling for Elixir. Built on the solid foundation of the result monad.**
+**Elegant error handling in Elixir, with result monads.**
 
 - [Install from Hex](https://hex.pm/packages/ok)
 - [Documentation available on hexdoc](https://hexdocs.pm/ok)
