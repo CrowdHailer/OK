@@ -131,7 +131,7 @@ defmodule OKTest do
     assert_raise CaseClauseError, fn() ->
       OK.with do
         a <- safe_div(8, 2)
-        {:x, a}
+        (fn() -> {:x, a} end).()
       end
     end
   end
@@ -210,11 +210,11 @@ defmodule OKTest do
   def safe_div(a, b) do
     {:ok, a / b}
   end
-  
+
   def pass_func(x) do
     {:ok, x}
   end
-  
+
   def fail_func(x) do
     {:error, x}
   end

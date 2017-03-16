@@ -241,23 +241,13 @@ defmodule OK do
       end
     end
   end
-  defp nest([{:<-, _, [left, right]} | rest]) do
-    quote do
-      case unquote(right) do
-        {:ok, unquote(left)} ->
-          unquote(nest(rest))
-        result = {:error, _} ->
-          result
-      end
-    end
-  end
   defp nest([{:ok, _} = normal | []]) do
     # last line of the with block is an ok literal
     quote do
       unquote(normal)
     end
   end
-  
+
   defp nest([{{:., _, [{:__aliases__, _, [:OK]}, :success]}, _, _} = normal | []]) do
     # last line of the with block is an OK.success macro line
     quote do
@@ -265,13 +255,23 @@ defmodule OK do
     end
   end
   defp nest([normal | []]) do
-    # last line of the with block is a func
+    # last line of the with block is a function
     quote do
       case unquote(normal) do
         {:ok, value} ->
           {:ok, value}
         {:error, reason} ->
           {:error, reason}
+      end
+    end
+  end
+  defp nest([{:<-, _, [left, right]} | rest]) do
+    quote do
+      case unquote(right) do
+        {:ok, unquote(left)} ->
+          unquote(nest(rest))
+        result = {:error, _} ->
+          result
       end
     end
   end
