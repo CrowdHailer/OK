@@ -1,31 +1,8 @@
 defmodule OK do
   @moduledoc """
-  The `OK` module enables clean and expressive error handling in pipelines.
-
-  Many Elixir libraries follow the tagged tuple convention for functions that will not alway return a valid response.
-  In case of a success the value is returned in an `:ok` tagged tuple.
-  If the function fails then a reason is returned in an `:error` tagged tuple.
-
-  Calling code the matches on these two possible outcomes.
-
-  ```elixir
-  case my_func(args) do
-    {:ok, value} ->
-      do_more(value) # continue with subsequent processing
-    {:error, reason} ->
-      {:error, reason} # return early.
-  end
-  ```
-
-  `OK` allows this code to be replaced by a result pipeline.
-
-  ```elixir
-  my_func(args)
-  ~>> do_more
-  ```
-
-  *`OK` treates the combination of tagged tuples `{:ok, value} | {:error, reason}` as a result monad.
-  The result monad is sometimes know as the try or either monad.*
+  The `OK` module enables clean and expressive error handling when coding with idiomatic `:ok`/`:error` tuples. We've included many examples in the function docs here, but you can also check out the [README](https://github.com/CrowdHailer/OK/blob/master/README.md) for more details and usage.
+  
+  Feel free to [open an issue](https://github.com/CrowdHailer/OK/issues) for any questions that you have.
   """
 
   @doc """
@@ -72,65 +49,51 @@ defmodule OK do
   end
 
   @doc """
-  Result pipe operator.
-  (Result monad bind operator)
+  The OK result pipe operator `~>>`, or result monad bind operator, is similar to Elixir's native `|>` except it is used within happy path. It takes the value out of an `{:ok, value}` tuple and passes it as the first argument to the function call on the right.
 
-  The result pipe takes the value out of an `{:ok, value}` tuple and passes it as the first argument to the function call on the right.
-
-  ## Examples
-
-      iex> {:ok, 5} ~>> double()
-      {:ok, 10}
-
-      iex> {:error, :previous_bad} ~>> double()
-      {:error, :previous_bad}
-
-      # x is {:ok, 7} defined in `OKTest`.
-      iex> x() ~>> double()
-      {:ok, 14}
-
-  The result pipe is most useful when executing a series of operations that may fail.
-
-      iex> {:ok, 6} ~>> safe_div(3) ~>> double
-      {:ok, 4.0}
-
-      iex> {:ok, 6} ~>> safe_div(0) ~>> double
-      {:error, :zero_division}
 
   It can be used in several ways.
   Pipe to a local call.
   This example is the same as calling `double(5)`
 
-      iex> {:ok, 5} ~>> double
-      {:ok, 10}
+    iex> {:ok, 5} ~>> double()
+    {:ok, 10}
 
   Pipe to a remote call.
   This example is the same as calling `OKTest.double(3)`
 
-      iex> {:ok, 5} ~>> OKTest.double()
-      {:ok, 10}
+    iex> {:ok, 5} ~>> OKTest.double()
+    {:ok, 10}
 
-      iex> {:ok, 5} ~>> __MODULE__.double()
-      {:ok, 10}
+    iex> {:ok, 5} ~>> __MODULE__.double()
+    {:ok, 10}
 
   Pipe with extra arguments
   This example is the same as calling `OK.safe_div(3, 4)`
 
-      iex> {:ok, 6} ~>> safe_div(2)
-      {:ok, 3.0}
+    iex> {:ok, 6} ~>> safe_div(2)
+    {:ok, 3.0}
 
-      iex> {:ok, 6} ~>> safe_div(0)
-      {:error, :zero_division}
+    iex> {:ok, 6} ~>> safe_div(0)
+    {:error, :zero_division}
 
-  Given an anonymous function the following syntax needs to be used.
+  It also works with anonymous functions:
 
-      iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
-      {:ok, 4}
+    iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
+    {:ok, 4}
 
-      # decrement returns an anonymous function.
-      # weird I know but was needed as a test case
-      iex> {:ok, 6} ~>> decrement().(2)
-      {:ok, 4}
+    # decrement returns an anonymous function.
+    # weird I know but was needed as a test case
+    iex> {:ok, 6} ~>> decrement().(2)
+    {:ok, 4}
+
+  When an error is returned anywhere in the pipeline, it will be returned.
+  
+    iex> {:ok, 6} ~>> safe_div(0) ~>> double()
+    {:error, :zero_division}
+
+    iex> {:error, :previous_bad} ~>> safe_div(0) ~>> double()
+    {:error, :previous_bad}
   """
   defmacro lhs ~>> rhs do
     {call, line, args} = case rhs do
@@ -153,47 +116,97 @@ defmodule OK do
   Composes multiple functions similar to Elixir's native `with` construct.
 
   `OK.with/1` enables more terse and readable expressions however, eliminating
-  noise and regaining precious horizontal real estate in the process. It does
-  this by extracting result tuples when using the `<-` operator.
+  noise and regaining precious horizontal real estate. This makes `OK.with` 
+  statements simpler, more readable, and ultimately more maintainable. 
+  
+  It does this by extracting result tuples when using the `<-` operator.
 
-  ## Examples
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   b <- safe_div(a, 2)
+    ...>   OK.success b
+    ...> end
+    {:ok, 2.0}
 
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 2)
-      ...>   OK.success a + b
-      ...> end
-      {:ok, 6.0}
+  In above example, the result of each call to `safe_div/2` is an `:ok` tuple from which the `<-` extract operator pulls the value and assigns to the variable `a`. We then do the same for `b`, and to indicate our return value we use the `OK.success/1` macro. 
+  
+  We could have also written this with a raw `:ok` tuple:
 
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 2)
-      ...>   {:ok, a + b}
-      ...> end
-      {:ok, 6.0}
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   b <- safe_div(a, 2)
+    ...>   {:ok, b}
+    ...> end
+    {:ok, 2.0}
+    
+  Or even this:  
 
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b = 2.0
-      ...>   OK.success a + b
-      ...> end
-      {:ok, 6.0}
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   _ <- safe_div(a, 2)
+    ...> end
+    {:ok, 2.0}
 
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 0)
-      ...>   {:ok, a + b}
-      ...> end
-      {:error, :zero_division}
+  In addition to this, regular matching using the `=` operator is also available:
+  
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   b = 2.0
+    ...>   OK.success a + b
+    ...> end
+    {:ok, 6.0}
 
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 0)
-      ...>   {:ok, a + b}
-      ...> else
-      ...>   :zero_division -> OK.failure "You cannot divide by 0."
-      ...> end
-      {:error, "You cannot divide by 0."}
+  Error tuples are returned from the expression:
+  
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   b <- safe_div(a, 0)
+    ...>   {:ok, a + b}        # does not execute this line
+    ...> end
+    {:error, :zero_division}
+
+  `OK.with` also provides `else` blocks where you can pattern match on the _extracted_ error values, which is useful for wrapping or correcting errors:
+  
+    iex> OK.with do
+    ...>   a <- safe_div(8, 2)
+    ...>   b <- safe_div(a, 0) # returns {:error, :zero_division}
+    ...>   {:ok, a + b}
+    ...> else
+    ...>   :zero_division -> OK.failure "You cannot divide by 0."
+    ...> end
+    {:error, "You cannot divide by 0."}
+
+  ## Combining `OK.with` and `~>>`
+  
+  Because OK.pipe operator (`~>>`) also uses result monads, you can now pipe _safely_ within an `OK.with` block:
+  
+    iex> OK.with do
+    ...>   a <- {:ok, 100}
+    ...>        ~>> safe_div(10) 
+    ...>        ~>> safe_div(5)
+    ...>   b <- safe_div(64, 32)
+    ...>        ~>> double()
+    ...>   OK.success a + b
+    ...> end
+    {:ok, 6.0}
+
+    iex> OK.with do
+    ...>   a <- {:ok, 100}
+    ...>        ~>> safe_div(10) 
+    ...>        ~>> safe_div(0)   # error here
+    ...>   b <- safe_div(64, 32)
+    ...>        ~>> double()
+    ...>   OK.success a + b
+    ...> end
+    {:error, :zero_division}
+
+  ## Remarks 
+  
+  Notice that in all of these examples, we know this is a happy path operation because we are inside of the `OK.with` block. But it is much more elegant and readable, as it eliminates superfluous (i.e. non-DRY) `:ok` tuples throughout the code. 
+  
+  Also, `OK.with` does not have trailing commas on each line. This avoids compilation errors when you accidentally forget to add/remove a comma when coding.
+  
+  Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs) for more examples.
   """
   defmacro with(do: {:__block__, _env, lines}) do
     nest(lines)
