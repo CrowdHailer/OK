@@ -96,7 +96,8 @@ else
 end
 ```
 
-## Result Pipeline Operator `~>>`
+## Result Pipeline Operator
+`~>>`
 
 This macro allows pipelining result tuples through multiple functions for an extremely concise happy path.
 The `~>>` macro is equivalent to bind/flat_map in other languages.
