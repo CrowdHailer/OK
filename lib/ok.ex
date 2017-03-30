@@ -241,27 +241,12 @@ defmodule OK do
       end
     end
   end
-  defp nest([{:ok, _} = normal | []]) do
-    # last line of the with block is an ok literal
-    quote do
-      unquote(normal)
-    end
-  end
-
-  defp nest([{{:., _, [{:__aliases__, _, [:OK]}, :success]}, _, _} = normal | []]) do
-    # last line of the with block is an OK.success macro line
-    quote do
-      unquote(normal)
-    end
-  end
   defp nest([normal | []]) do
     # last line of the with block is a function
     quote do
       case unquote(normal) do
-        {:ok, value} ->
-          {:ok, value}
-        {:error, reason} ->
-          {:error, reason}
+        {tag, value} when tag in [:ok, :error] ->
+          {tag, value}
       end
     end
   end
