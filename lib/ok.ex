@@ -72,6 +72,26 @@ defmodule OK do
   end
 
   @doc """
+  Require a variable not to be nil.
+
+  Optionally provide a reason why variable is required.
+
+  ## Example
+
+      iex> OK.required(:some)
+      {:ok, :some}
+
+      iex> OK.required(nil)
+      {:error, :value_required}
+
+      iex> OK.required(Map.get(%{}, :port), :port_number_required)
+      {:error,  :port_number_required}
+  """
+  def required(value, reason \\ :value_required)
+  def required(nil, reason), do: {:error, reason}
+  def required(value, _reason), do: {:ok, value}
+
+  @doc """
   Result pipe operator.
   (Result monad bind operator)
 
