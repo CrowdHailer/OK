@@ -196,7 +196,13 @@ defmodule OK do
       {:error, "You cannot divide by 0."}
   """
   defmacro with(do: {:__block__, _env, lines}) do
-    nest(lines)
+    return = bind_match(lines)
+    quote do
+      case unquote(return) do
+        result = {tag, _} when tag in [:ok, :error] ->
+          result
+      end
+    end
   end
   defmacro with(do: {:__block__, _, normal}, else: exceptional) do
     exceptional_clauses = exceptional ++ (quote do
@@ -204,7 +210,7 @@ defmodule OK do
         {:error, reason}
     end)
     quote do
-      unquote(nest(normal))
+      unquote(bind_match(normal))
       |> case do
         {:ok, value} ->
           {:ok, value}
@@ -227,43 +233,28 @@ defmodule OK do
   """
   defmacro try(do: {:__block__, _env, lines}) do
     Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
-    nest(lines)
+    bind_match(lines)
   end
 
-  defp nest([{:<-, _, [left, right]} | []]) do
-    # last line of with block is a <- extraction
-    quote do
-      case unquote(right) do
-        result = {:ok, unquote(left)} ->
-          result
-        result = {:error, _} ->
-          result
-      end
-    end
+  defp bind_match([]) do
+    quote do: nil
   end
-  defp nest([normal | []]) do
-    # last line of the with block is a function
+  defp bind_match([{:<-, _, [left, right]} | rest]) do
+    tmp = quote do: tmp
     quote do
-      case unquote(normal) do
-        result = {tag, _} when tag in [:ok, :error] ->
-          result
-      end
-    end
-  end
-  defp nest([{:<-, _, [left, right]} | rest]) do
-    quote do
-      case unquote(right) do
+      case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(nest(rest))
+          unquote(bind_match(rest) || tmp)
         result = {:error, _} ->
           result
       end
     end
   end
-  defp nest([normal | rest]) do
+  defp bind_match([normal | rest]) do
+    tmp = quote do: tmp
     quote do
-      unquote(normal)
-      unquote(nest(rest))
+      unquote(tmp) = unquote(normal)
+      unquote(bind_match(rest) || tmp)
     end
   end
 end
