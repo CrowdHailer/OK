@@ -236,17 +236,44 @@ defmodule OK do
     bind_match(lines)
   end
 
+  defmodule BindError do
+    defexception [:return, :lhs, :rhs]
+
+    def message(%{return: return, lhs: lhs, rhs: rhs}) do
+      """
+      Binding to variable failed, '#{inspect(return)}' is not a result tuple.
+
+          Code
+            #{lhs} <- #{rhs}
+
+          Expected signature
+            #{rhs} :: {:ok, #{lhs}} | {:error, reason}
+
+          Actual values
+            #{rhs} :: #{inspect(return)}
+      """
+    end
+  end
+
   defp bind_match([]) do
     quote do: nil
   end
-  defp bind_match([{:<-, _, [left, right]} | rest]) do
+  defp bind_match([{:<-, env, [left, right]} | rest]) do
+    line = Keyword.get(env, :line)
+    lhs_string = Macro.to_string(left)
+    rhs_string = Macro.to_string(right)
     tmp = quote do: tmp
-    quote do
+    quote line: line do
       case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
           unquote(bind_match(rest) || tmp)
         result = {:error, _} ->
           result
+        return ->
+          raise %BindError{
+            return: return,
+            lhs: unquote(lhs_string),
+            rhs: unquote(rhs_string)}
       end
     end
   end
