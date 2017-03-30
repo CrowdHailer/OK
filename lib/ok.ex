@@ -245,8 +245,8 @@ defmodule OK do
     # last line of the with block is a function
     quote do
       case unquote(normal) do
-        {tag, value} when tag in [:ok, :error] ->
-          {tag, value}
+        result = {tag, _} when tag in [:ok, :error] ->
+          result
       end
     end
   end
