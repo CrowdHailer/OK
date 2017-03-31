@@ -28,7 +28,7 @@ defmodule OK.ErrorTest do
       OK.with do
         a <- foo(6)
         b <- bar(a)
-        _ <- {:ok, b}
+        OK.success(b)
       end
     end
   end

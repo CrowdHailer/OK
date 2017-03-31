@@ -85,7 +85,7 @@ defmodule OK do
       {:error, :value_required}
 
       iex> OK.required(Map.get(%{}, :port), :port_number_required)
-      {:error,  :port_number_required}
+      {:error, :port_number_required}
   """
   def required(value, reason \\ :value_required)
   def required(nil, reason), do: {:error, reason}
