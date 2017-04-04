@@ -72,6 +72,26 @@ defmodule OK do
   end
 
   @doc """
+  Require a variable not to be nil.
+
+  Optionally provide a reason why variable is required.
+
+  ## Example
+
+      iex> OK.required(:some)
+      {:ok, :some}
+
+      iex> OK.required(nil)
+      {:error, :value_required}
+
+      iex> OK.required(Map.get(%{}, :port), :port_number_required)
+      {:error, :port_number_required}
+  """
+  def required(value, reason \\ :value_required)
+  def required(nil, reason), do: {:error, reason}
+  def required(value, _reason), do: {:ok, value}
+
+  @doc """
   Result pipe operator.
   (Result monad bind operator)
 
@@ -196,7 +216,13 @@ defmodule OK do
       {:error, "You cannot divide by 0."}
   """
   defmacro with(do: {:__block__, _env, lines}) do
-    nest(lines)
+    return = bind_match(lines)
+    quote do
+      case unquote(return) do
+        result = {tag, _} when tag in [:ok, :error] ->
+          result
+      end
+    end
   end
   defmacro with(do: {:__block__, _, normal}, else: exceptional) do
     exceptional_clauses = exceptional ++ (quote do
@@ -204,7 +230,7 @@ defmodule OK do
         {:error, reason}
     end)
     quote do
-      unquote(nest(normal))
+      unquote(bind_match(normal))
       |> case do
         {:ok, value} ->
           {:ok, value}
@@ -227,58 +253,55 @@ defmodule OK do
   """
   defmacro try(do: {:__block__, _env, lines}) do
     Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
-    nest(lines)
+    bind_match(lines)
   end
 
-  defp nest([{:<-, _, [left, right]} | []]) do
-    # last line of with block is a <- extraction
-    quote do
-      case unquote(right) do
-        result = {:ok, unquote(left)} ->
-          result
-        result = {:error, _} ->
-          result
-      end
-    end
-  end
-  defp nest([{:ok, _} = normal | []]) do
-    # last line of the with block is an ok literal
-    quote do
-      unquote(normal)
+  defmodule BindError do
+    defexception [:return, :lhs, :rhs]
+
+    def message(%{return: return, lhs: lhs, rhs: rhs}) do
+      """
+      Binding to variable failed, '#{inspect(return)}' is not a result tuple.
+
+          Code
+            #{lhs} <- #{rhs}
+
+          Expected signature
+            #{rhs} :: {:ok, #{lhs}} | {:error, reason}
+
+          Actual values
+            #{rhs} :: #{inspect(return)}
+      """
     end
   end
 
-  defp nest([{{:., _, [{:__aliases__, _, [:OK]}, :success]}, _, _} = normal | []]) do
-    # last line of the with block is an OK.success macro line
-    quote do
-      unquote(normal)
-    end
+  defp bind_match([]) do
+    quote do: nil
   end
-  defp nest([normal | []]) do
-    # last line of the with block is a function
-    quote do
-      case unquote(normal) do
-        {:ok, value} ->
-          {:ok, value}
-        {:error, reason} ->
-          {:error, reason}
-      end
-    end
-  end
-  defp nest([{:<-, _, [left, right]} | rest]) do
-    quote do
-      case unquote(right) do
+  defp bind_match([{:<-, env, [left, right]} | rest]) do
+    line = Keyword.get(env, :line)
+    lhs_string = Macro.to_string(left)
+    rhs_string = Macro.to_string(right)
+    tmp = quote do: tmp
+    quote line: line do
+      case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(nest(rest))
+          unquote(bind_match(rest) || tmp)
         result = {:error, _} ->
           result
+        return ->
+          raise %BindError{
+            return: return,
+            lhs: unquote(lhs_string),
+            rhs: unquote(rhs_string)}
       end
     end
   end
-  defp nest([normal | rest]) do
+  defp bind_match([normal | rest]) do
+    tmp = quote do: tmp
     quote do
-      unquote(normal)
-      unquote(nest(rest))
+      unquote(tmp) = unquote(normal)
+      unquote(bind_match(rest) || tmp)
     end
   end
 end
