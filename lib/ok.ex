@@ -261,7 +261,7 @@ defmodule OK do
 
     def message(%{return: return, lhs: lhs, rhs: rhs}) do
       """
-      Binding to variable failed, '#{inspect(return)}' is not a result tuple.
+      no binding to right hand side value: '#{inspect(return)}'
 
           Code
             #{lhs} <- #{rhs}

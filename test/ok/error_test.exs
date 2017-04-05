@@ -13,7 +13,7 @@ defmodule OK.ErrorTest do
 
   test "helpful error for binding failure" do
     message = """
-    Binding to variable failed, '{:bad, 6}' is not a result tuple.
+    no binding to right hand side value: '{:bad, 6}'
 
         Code
           b <- bar(a)
@@ -28,6 +28,28 @@ defmodule OK.ErrorTest do
       OK.with do
         a <- foo(6)
         b <- bar(a)
+        OK.success(b)
+      end
+    end
+  end
+
+  test "match failure" do
+    message = """
+    no binding to right hand side value: '{:ok, 6}'
+
+        Code
+          %{a: a} <- foo(6)
+
+        Expected signature
+          foo(6) :: {:ok, %{a: a}} | {:error, reason}
+
+        Actual values
+          foo(6) :: {:ok, 6}
+    """
+    assert_raise OK.BindError, message, fn() ->
+      OK.with do
+        %{a: a} <- foo(6)
+        b <- foo(a)
         OK.success(b)
       end
     end
