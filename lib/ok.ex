@@ -56,44 +56,44 @@ defmodule OK do
   Pipe to a local call.
   This example is the same as calling `double(5)`
 
-    iex> {:ok, 5} ~>> double()
-    {:ok, 10}
+      iex> {:ok, 5} ~>> double()
+      {:ok, 10}
 
   Pipe to a remote call.
   This example is the same as calling `OKTest.double(3)`
 
-    iex> {:ok, 5} ~>> OKTest.double()
-    {:ok, 10}
+      iex> {:ok, 5} ~>> OKTest.double()
+      {:ok, 10}
 
-    iex> {:ok, 5} ~>> __MODULE__.double()
-    {:ok, 10}
+      iex> {:ok, 5} ~>> __MODULE__.double()
+      {:ok, 10}
 
   Pipe with extra arguments
   This example is the same as calling `OK.safe_div(3, 4)`
 
-    iex> {:ok, 6} ~>> safe_div(2)
-    {:ok, 3.0}
+      iex> {:ok, 6} ~>> safe_div(2)
+      {:ok, 3.0}
 
-    iex> {:ok, 6} ~>> safe_div(0)
-    {:error, :zero_division}
+      iex> {:ok, 6} ~>> safe_div(0)
+      {:error, :zero_division}
 
   It also works with anonymous functions:
 
-    iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
-    {:ok, 4}
+      iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
+      {:ok, 4}
 
-    # decrement returns an anonymous function.
-    # weird I know but was needed as a test case
-    iex> {:ok, 6} ~>> decrement().(2)
-    {:ok, 4}
+      # decrement returns an anonymous function.
+      # weird I know but was needed as a test case
+      iex> {:ok, 6} ~>> decrement().(2)
+      {:ok, 4}
 
   When an error is returned anywhere in the pipeline, it will be returned.
   
-    iex> {:ok, 6} ~>> safe_div(0) ~>> double()
-    {:error, :zero_division}
+      iex> {:ok, 6} ~>> safe_div(0) ~>> double()
+      {:error, :zero_division}
 
-    iex> {:error, :previous_bad} ~>> safe_div(0) ~>> double()
-    {:error, :previous_bad}
+      iex> {:error, :previous_bad} ~>> safe_div(0) ~>> double()
+      {:error, :previous_bad}
   """
   defmacro lhs ~>> rhs do
     {call, line, args} = case rhs do
@@ -121,84 +121,84 @@ defmodule OK do
   
   It does this by extracting result tuples when using the `<-` operator.
 
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   b <- safe_div(a, 2)
-    ...>   OK.success b
-    ...> end
-    {:ok, 2.0}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...>   OK.success b
+      ...> end
+      {:ok, 2.0}
 
   In above example, the result of each call to `safe_div/2` is an `:ok` tuple from which the `<-` extract operator pulls the value and assigns to the variable `a`. We then do the same for `b`, and to indicate our return value we use the `OK.success/1` macro. 
   
   We could have also written this with a raw `:ok` tuple:
 
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   b <- safe_div(a, 2)
-    ...>   {:ok, b}
-    ...> end
-    {:ok, 2.0}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...>   {:ok, b}
+      ...> end
+      {:ok, 2.0}
     
   Or even this:  
 
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   _ <- safe_div(a, 2)
-    ...> end
-    {:ok, 2.0}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   _ <- safe_div(a, 2)
+      ...> end
+      {:ok, 2.0}
 
   In addition to this, regular matching using the `=` operator is also available:
   
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   b = 2.0
-    ...>   OK.success a + b
-    ...> end
-    {:ok, 6.0}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b = 2.0
+      ...>   OK.success a + b
+      ...> end
+      {:ok, 6.0}
 
   Error tuples are returned from the expression:
   
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   b <- safe_div(a, 0)
-    ...>   {:ok, a + b}        # does not execute this line
-    ...> end
-    {:error, :zero_division}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0)
+      ...>   {:ok, a + b}        # does not execute this line
+      ...> end
+      {:error, :zero_division}
 
   `OK.with` also provides `else` blocks where you can pattern match on the _extracted_ error values, which is useful for wrapping or correcting errors:
   
-    iex> OK.with do
-    ...>   a <- safe_div(8, 2)
-    ...>   b <- safe_div(a, 0) # returns {:error, :zero_division}
-    ...>   {:ok, a + b}
-    ...> else
-    ...>   :zero_division -> OK.failure "You cannot divide by 0."
-    ...> end
-    {:error, "You cannot divide by 0."}
+      iex> OK.with do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0) # returns {:error, :zero_division}
+      ...>   {:ok, a + b}
+      ...> else
+      ...>   :zero_division -> OK.failure "You cannot divide by 0."
+      ...> end
+      {:error, "You cannot divide by 0."}
 
-  ## Combining `OK.with` and `~>>`
+  ## Combining OK.with and ~>>
   
   Because OK.pipe operator (`~>>`) also uses result monads, you can now pipe _safely_ within an `OK.with` block:
   
-    iex> OK.with do
-    ...>   a <- {:ok, 100}
-    ...>        ~>> safe_div(10) 
-    ...>        ~>> safe_div(5)
-    ...>   b <- safe_div(64, 32)
-    ...>        ~>> double()
-    ...>   OK.success a + b
-    ...> end
-    {:ok, 6.0}
+      iex> OK.with do
+      ...>   a <- {:ok, 100}
+      ...>        ~>> safe_div(10) 
+      ...>        ~>> safe_div(5)
+      ...>   b <- safe_div(64, 32)
+      ...>        ~>> double()
+      ...>   OK.success a + b
+      ...> end
+      {:ok, 6.0}
 
-    iex> OK.with do
-    ...>   a <- {:ok, 100}
-    ...>        ~>> safe_div(10) 
-    ...>        ~>> safe_div(0)   # error here
-    ...>   b <- safe_div(64, 32)
-    ...>        ~>> double()
-    ...>   OK.success a + b
-    ...> end
-    {:error, :zero_division}
+      iex> OK.with do
+      ...>   a <- {:ok, 100}
+      ...>        ~>> safe_div(10) 
+      ...>        ~>> safe_div(0)   # error here
+      ...>   b <- safe_div(64, 32)
+      ...>        ~>> double()
+      ...>   OK.success a + b
+      ...> end
+      {:error, :zero_division}
 
   ## Remarks 
   
