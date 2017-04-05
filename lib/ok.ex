@@ -1,8 +1,13 @@
 defmodule OK do
   @moduledoc """
-  The `OK` module enables clean and expressive error handling when coding with idiomatic `:ok`/`:error` tuples. We've included many examples in the function docs here, but you can also check out the [README](https://github.com/CrowdHailer/OK/blob/master/README.md) for more details and usage.
+  The `OK` module enables clean and expressive error handling when coding with
+  idiomatic `:ok`/`:error` tuples. We've included many examples in the function
+  docs here, but you can also check out the
+  [README](https://github.com/CrowdHailer/OK/blob/master/README.md) for more
+  details and usage.
   
-  Feel free to [open an issue](https://github.com/CrowdHailer/OK/issues) for any questions that you have.
+  Feel free to [open an issue](https://github.com/CrowdHailer/OK/issues) for
+  any questions that you have.
   """
 
   @doc """
@@ -49,18 +54,41 @@ defmodule OK do
   end
 
   @doc """
-  The OK result pipe operator `~>>`, or result monad bind operator, is similar to Elixir's native `|>` except it is used within happy path. It takes the value out of an `{:ok, value}` tuple and passes it as the first argument to the function call on the right.
+  Require a variable not to be nil.
 
+  Optionally provide a reason why variable is required.
 
+  ## Example
+
+      iex> OK.required(:some)
+      {:ok, :some}
+
+      iex> OK.required(nil)
+      {:error, :value_required}
+
+      iex> OK.required(Map.get(%{}, :port), :port_number_required)
+      {:error, :port_number_required}
+  """
+  def required(value, reason \\ :value_required)
+  def required(nil, reason), do: {:error, reason}
+  def required(value, _reason), do: {:ok, value}
+
+  @doc """
+  The OK result pipe operator `~>>`, or result monad bind operator, is similar
+  to Elixir's native `|>` except it is used within happy path. It takes the
+  value out of an `{:ok, value}` tuple and passes it as the first argument to
+  the function call on the right.
+  
   It can be used in several ways.
-  Pipe to a local call.
-  This example is the same as calling `double(5)`
+  
+  Pipe to a local call.<br />
+  _(This is equivalent to calling `double(5)`)_
 
       iex> {:ok, 5} ~>> double()
       {:ok, 10}
 
-  Pipe to a remote call.
-  This example is the same as calling `OKTest.double(3)`
+  Pipe to a remote call.<br />
+  _(This is equivalent to calling `OKTest.double(3)`)_
 
       iex> {:ok, 5} ~>> OKTest.double()
       {:ok, 10}
@@ -68,8 +96,8 @@ defmodule OK do
       iex> {:ok, 5} ~>> __MODULE__.double()
       {:ok, 10}
 
-  Pipe with extra arguments
-  This example is the same as calling `OK.safe_div(3, 4)`
+  Pipe with extra arguments.<br />
+  _(This is equivalent to calling `OK.safe_div(3, 4)`)_
 
       iex> {:ok, 6} ~>> safe_div(2)
       {:ok, 3.0}
@@ -77,13 +105,11 @@ defmodule OK do
       iex> {:ok, 6} ~>> safe_div(0)
       {:error, :zero_division}
 
-  It also works with anonymous functions:
+  It also works with anonymous functions.
 
       iex> {:ok, 3} ~>> (fn (x) -> {:ok, x + 1} end).()
       {:ok, 4}
 
-      # decrement returns an anonymous function.
-      # weird I know but was needed as a test case
       iex> {:ok, 6} ~>> decrement().(2)
       {:ok, 4}
 
@@ -128,7 +154,10 @@ defmodule OK do
       ...> end
       {:ok, 2.0}
 
-  In above example, the result of each call to `safe_div/2` is an `:ok` tuple from which the `<-` extract operator pulls the value and assigns to the variable `a`. We then do the same for `b`, and to indicate our return value we use the `OK.success/1` macro. 
+  In above example, the result of each call to `safe_div/2` is an `:ok` tuple
+  from which the `<-` extract operator pulls the value and assigns to the
+  variable `a`. We then do the same for `b`, and to indicate our return value
+  we use the `OK.success/1` macro. 
   
   We could have also written this with a raw `:ok` tuple:
 
@@ -160,7 +189,7 @@ defmodule OK do
   
       iex> OK.with do
       ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 0)
+      ...>   b <- safe_div(a, 0) # error here
       ...>   {:ok, a + b}        # does not execute this line
       ...> end
       {:error, :zero_division}
@@ -178,7 +207,8 @@ defmodule OK do
 
   ## Combining OK.with and ~>>
   
-  Because OK.pipe operator (`~>>`) also uses result monads, you can now pipe _safely_ within an `OK.with` block:
+  Because the OK.pipe operator (`~>>`) also uses result monads, you can now pipe
+  _safely_ within an `OK.with` block:
   
       iex> OK.with do
       ...>   a <- {:ok, 100}
@@ -202,14 +232,26 @@ defmodule OK do
 
   ## Remarks 
   
-  Notice that in all of these examples, we know this is a happy path operation because we are inside of the `OK.with` block. But it is much more elegant and readable, as it eliminates superfluous (i.e. non-DRY) `:ok` tuples throughout the code. 
+  Notice that in all of these examples, we know this is a happy path operation
+  because we are inside of the `OK.with` block. But it is much more elegant,
+  readable and DRY, as it eliminates large numbers of superfluous `:ok` tags 
+  that would normally be found in native `with` blocks.
   
-  Also, `OK.with` does not have trailing commas on each line. This avoids compilation errors when you accidentally forget to add/remove a comma when coding.
+  Also, `OK.with` does not have trailing commas on each line. This avoids
+  compilation errors when you accidentally forget to add/remove a comma when
+  coding.
   
-  Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs) for more examples.
+  Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs) 
+  for more examples.
   """
   defmacro with(do: {:__block__, _env, lines}) do
-    nest(lines)
+    return = bind_match(lines)
+    quote do
+      case unquote(return) do
+        result = {tag, _} when tag in [:ok, :error] ->
+          result
+      end
+    end
   end
   defmacro with(do: {:__block__, _, normal}, else: exceptional) do
     exceptional_clauses = exceptional ++ (quote do
@@ -217,7 +259,7 @@ defmodule OK do
         {:error, reason}
     end)
     quote do
-      unquote(nest(normal))
+      unquote(bind_match(normal))
       |> case do
         {:ok, value} ->
           {:ok, value}
@@ -240,58 +282,55 @@ defmodule OK do
   """
   defmacro try(do: {:__block__, _env, lines}) do
     Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
-    nest(lines)
+    bind_match(lines)
   end
 
-  defp nest([{:<-, _, [left, right]} | []]) do
-    # last line of with block is a <- extraction
-    quote do
-      case unquote(right) do
-        result = {:ok, unquote(left)} ->
-          result
-        result = {:error, _} ->
-          result
-      end
-    end
-  end
-  defp nest([{:ok, _} = normal | []]) do
-    # last line of the with block is an ok literal
-    quote do
-      unquote(normal)
+  defmodule BindError do
+    defexception [:return, :lhs, :rhs]
+
+    def message(%{return: return, lhs: lhs, rhs: rhs}) do
+      """
+      no binding to right hand side value: '#{inspect(return)}'
+
+          Code
+            #{lhs} <- #{rhs}
+
+          Expected signature
+            #{rhs} :: {:ok, #{lhs}} | {:error, reason}
+
+          Actual values
+            #{rhs} :: #{inspect(return)}
+      """
     end
   end
 
-  defp nest([{{:., _, [{:__aliases__, _, [:OK]}, :success]}, _, _} = normal | []]) do
-    # last line of the with block is an OK.success macro line
-    quote do
-      unquote(normal)
-    end
+  defp bind_match([]) do
+    quote do: nil
   end
-  defp nest([normal | []]) do
-    # last line of the with block is a function
-    quote do
-      case unquote(normal) do
-        {:ok, value} ->
-          {:ok, value}
-        {:error, reason} ->
-          {:error, reason}
-      end
-    end
-  end
-  defp nest([{:<-, _, [left, right]} | rest]) do
-    quote do
-      case unquote(right) do
+  defp bind_match([{:<-, env, [left, right]} | rest]) do
+    line = Keyword.get(env, :line)
+    lhs_string = Macro.to_string(left)
+    rhs_string = Macro.to_string(right)
+    tmp = quote do: tmp
+    quote line: line do
+      case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(nest(rest))
+          unquote(bind_match(rest) || tmp)
         result = {:error, _} ->
           result
+        return ->
+          raise %BindError{
+            return: return,
+            lhs: unquote(lhs_string),
+            rhs: unquote(rhs_string)}
       end
     end
   end
-  defp nest([normal | rest]) do
+  defp bind_match([normal | rest]) do
+    tmp = quote do: tmp
     quote do
-      unquote(normal)
-      unquote(nest(rest))
+      unquote(tmp) = unquote(normal)
+      unquote(bind_match(rest) || tmp)
     end
   end
 end
