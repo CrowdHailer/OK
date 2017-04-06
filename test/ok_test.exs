@@ -136,6 +136,43 @@ defmodule OKTest do
       end
     end
   end
+  
+  test "override catchall else block - no warning" do
+    # a catchall in an else block should not create a compiler warning.
+    
+    # else block with raw error tuples
+    OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      OK.success a + b
+    else
+      "string_reason" -> {:error, "string fail"}
+      :atom_reason -> {:error, "atom fail"}
+      _reason -> {:error, "catchall fail"}
+    end
+
+    # else block with OK.failure macros
+    OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      OK.success a + b
+    else
+      "string_reason" -> OK.failure "string fail"
+      :atom_reason -> OK.failure "atom fail"
+      _reason -> OK.failure "catchall fail"
+    end
+    
+    # else block with funcs
+    OK.with do
+      a <- safe_div(8, 2)
+      b <- safe_div(a, 2)
+      OK.success a + b
+    else
+      "string_reason" -> fail_func("string fail")
+      :atom_reason -> fail_func("atom fail")
+      _reason -> fail_func("catchall fail")
+    end
+  end
 
   test "matching on a success case" do
     success(value) = {:ok, :value}

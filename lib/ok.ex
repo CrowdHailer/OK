@@ -254,10 +254,16 @@ defmodule OK do
     end
   end
   defmacro with(do: {:__block__, _, normal}, else: exceptional) do
-    exceptional_clauses = exceptional ++ (quote do
-      reason ->
-        {:error, reason}
-    end)
+    exceptional_clauses =
+      if Enum.any?(exceptional, &exception_is_catchall?/1) do
+        exceptional
+      else
+        # Add a catchall exception block to pass through unmatched errors.
+        exceptional ++ (quote do
+                          reason -> {:error, reason}
+                        end)
+      end
+
     quote do
       unquote(bind_match(normal))
       |> case do
@@ -272,6 +278,23 @@ defmodule OK do
               result
           end
       end
+    end
+  end
+  
+  # Normal exception blocks
+  #   {:->, [line: 147], [["string_reason"], {:error, "string fail"}]}
+  #   {:->, [line: 148], [[:atom_reason], {:error, "atom fail"}]}
+  # Catchall exception block:
+  #   {:->, [line: 149], [[{:_reason, [line: 149], nil}], {:error, "catchall fail"}]}
+  defp exception_is_catchall?(exception_block) do
+    # 
+    {_,_,exc_contents} = exception_block
+    exc_match = exc_contents |> Enum.at(0) |> Enum.at(0)
+    case exc_match do
+      {_,_, nil} -> 
+        true
+      _ -> 
+        false
     end
   end
 
