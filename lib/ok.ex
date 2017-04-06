@@ -88,7 +88,7 @@ defmodule OK do
       {:ok, 10}
 
   Pipe to a remote call.<br />
-  _(This is equivalent to calling `OKTest.double(3)`)_
+  _(This is equivalent to calling `OKTest.double(5)`)_
 
       iex> {:ok, 5} ~>> OKTest.double()
       {:ok, 10}
@@ -97,7 +97,7 @@ defmodule OK do
       {:ok, 10}
 
   Pipe with extra arguments.<br />
-  _(This is equivalent to calling `OK.safe_div(3, 4)`)_
+  _(This is equivalent to calling `safe_div(6, 2)`)_
 
       iex> {:ok, 6} ~>> safe_div(2)
       {:ok, 3.0}
