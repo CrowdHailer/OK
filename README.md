@@ -29,7 +29,7 @@ See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handlin
 - Return result must also be in the form of a tagged tuple.
 - _Optionally_ pattern match on some errors in an `else` block.
 
-_NB: Statements are **not** delimited by commas as with the native Elixir `with` construct._
+_NB: Statements inside `OK.with` blocks are **not** delimited by commas as with the native Elixir `with` construct._
 
 ```elixir
 require OK
@@ -96,11 +96,11 @@ else
 end
 ```
 
-## Result Pipeline Operator
-`~>>`
+## OK Pipeline Operator 
 
-This macro allows pipelining result tuples through multiple functions for an extremely concise happy path.
-The `~>>` macro is equivalent to bind/flat_map in other languages.
+The OK pipeline macro (`~>>`) is equivalent to `bind`/`flat_map` in other
+languages, and this allows pipelining result tuples through multiple functions
+for an extremely concise happy path.
 
 ```elixir
 import OK only: ["~>>": 2]
@@ -116,9 +116,9 @@ end
 ## Semantic matches
 
 `OK` provides macros for matching on success and failure cases.
-This allows for code to check if a result returned from a function was a success or failure.
-
-This check can be done without knowledge about how the result is structured to represent a success or failure
+This allows for code to check if a result returned from a function was a
+success or failure while hiding implementation details about how that result is
+structured.
 
 ```elixir
 import OK, only: [success: 2, failure: 2]
