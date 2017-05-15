@@ -60,6 +60,15 @@ defmodule OKTest do
     assert result == {:ok, 2}
   end
 
+  test "works with a single code expression" do
+    result = OK.with do
+      {:ok, 8}
+      ~>> safe_div(2)
+      ~>> safe_div(2)
+    end
+    assert result == {:ok, 2}
+  end
+
   test "primitives as final operation - ok literal" do
     result = OK.with do
       a <- safe_div(8, 2)
