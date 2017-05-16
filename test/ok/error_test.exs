@@ -1,11 +1,11 @@
 defmodule OK.ErrorTest do
   use ExUnit.Case
 
-  def foo(x) do
+  def good(x) do
     {:ok, x}
   end
 
-  def bar(y) do
+  def invalid(y) do
     {:bad, y}
   end
 
@@ -16,18 +16,18 @@ defmodule OK.ErrorTest do
     no binding to right hand side value: '{:bad, 6}'
 
         Code
-          b <- bar(a)
+          b <- invalid(a)
 
         Expected signature
-          bar(a) :: {:ok, b} | {:error, reason}
+          invalid(a) :: {:ok, b} | {:error, reason}
 
         Actual values
-          bar(a) :: {:bad, 6}
+          invalid(a) :: {:bad, 6}
     """
     assert_raise OK.BindError, message, fn() ->
       OK.with do
-        a <- foo(6)
-        b <- bar(a)
+        a <- good(6)
+        b <- invalid(a)
         OK.success(b)
       end
     end
@@ -38,19 +38,63 @@ defmodule OK.ErrorTest do
     no binding to right hand side value: '{:ok, 6}'
 
         Code
-          %{a: a} <- foo(6)
+          %{a: a} <- good(6)
 
         Expected signature
-          foo(6) :: {:ok, %{a: a}} | {:error, reason}
+          good(6) :: {:ok, %{a: a}} | {:error, reason}
 
         Actual values
-          foo(6) :: {:ok, 6}
+          good(6) :: {:ok, 6}
     """
     assert_raise OK.BindError, message, fn() ->
       OK.with do
-        %{a: a} <- foo(6)
-        b <- foo(a)
+        %{a: a} <- good(6)
+        b <- good(a)
         OK.success(b)
+      end
+    end
+  end
+
+  test "invalid result from main block" do
+    message = """
+    final value from block was invalid, a result tuple was expected.
+
+        Code
+          invalid(a)
+
+        Expected output
+          {:ok, value} | {:error, reason}
+
+        Actual output
+          {:bad, 6}
+    """
+    assert_raise OK.BadResultError, message, fn() ->
+      OK.with do
+        a <- good(6)
+        invalid(a)
+      end
+    end
+  end
+
+  test "invalid result from error case" do
+    message = """
+    final value from block was invalid, a result tuple was expected.
+
+        Code
+          invalid(5)
+
+        Expected output
+          {:ok, value} | {:error, reason}
+
+        Actual output
+          {:bad, 5}
+    """
+    assert_raise OK.BadResultError, fn() ->
+      OK.with do
+        fn() -> {:error, :zero_division} end.()
+      else
+        :zero_division ->
+          invalid(5)
       end
     end
   end

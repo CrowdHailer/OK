@@ -125,15 +125,6 @@ defmodule OKTest do
     assert result == {:error, 2.0}
   end
 
-  test "will fail to match if the return value is not a result" do
-    assert_raise CaseClauseError, fn() ->
-      OK.with do
-        a <- safe_div(8, 2)
-        (fn() -> {:x, a} end).()
-      end
-    end
-  end
-
   test "will fail to match if the return value of exceptional block is not a result" do
     assert_raise CaseClauseError, fn() ->
       OK.with do
