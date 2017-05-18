@@ -277,9 +277,30 @@ defmodule OK do
     end
   end
 
+  @doc false
+  defmacro def(signature, do: code) do
+    {:__block__, _env, lines} = wrap_code_block(code)
+    quote do
+      Kernel.def unquote(signature) do
+        unquote(bind_match(lines))
+      end
+    end
+  end
+  defmacro def(signature, do: code, else: exceptional) do
+    {:__block__, _env, lines} = wrap_code_block(code)
+    quote do
+      Kernel.def unquote(signature) do
+        unquote(bind_match(lines, exceptional))
+      end
+    end
+  end
+
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
   defp wrap_code_block(expression = {_, env, _}) do
      {:__block__, env, [expression]}
+   end
+  defp wrap_code_block(primitive) do
+     {:__block__, [], [primitive]}
    end
 
   require Logger
@@ -311,20 +332,35 @@ defmodule OK do
     end
   end
 
-  defp bind_match([]) do
+  defp bind_match(code, exceptional \\ nil)
+  defp bind_match([], _exceptional) do
     quote do: nil
   end
-  defp bind_match([{:<-, env, [left, right]} | rest]) do
+  defp bind_match([{:<-, env, [left, right]} | rest], exceptional) do
     line = Keyword.get(env, :line)
     lhs_string = Macro.to_string(left)
     rhs_string = Macro.to_string(right)
     tmp = quote do: tmp
+    result = quote do: result
+    result_handler = if exceptional == nil do
+      result
+    else
+      # TODO link error line number to the bind that triggered it
+      [{:->, e, _} | _] = exceptional
+      l = Keyword.get(e, :line)
+      quote line: l - 1 do
+        {:error, reason} = unquote(result)
+        case reason do
+          unquote(exceptional)
+        end
+      end
+    end
     quote line: line do
       case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(bind_match(rest) || tmp)
-        result = {:error, _} ->
-          result
+          unquote(bind_match(rest, exceptional) || tmp)
+        unquote(result) = {:error, _} ->
+          unquote(result_handler)
         return ->
           raise %BindError{
             return: return,
@@ -333,11 +369,11 @@ defmodule OK do
       end
     end
   end
-  defp bind_match([normal | rest]) do
+  defp bind_match([normal | rest], exceptional) do
     tmp = quote do: tmp
     quote do
       unquote(tmp) = unquote(normal)
-      unquote(bind_match(rest) || tmp)
+      unquote(bind_match(rest, exceptional) || tmp)
     end
   end
 end

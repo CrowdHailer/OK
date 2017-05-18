@@ -3,7 +3,7 @@ defmodule OK.Mixfile do
 
   def project do
     [app: :ok,
-     version: "1.6.2",
+     version: "1.7.0-rc.1",
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
