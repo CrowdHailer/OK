@@ -277,6 +277,7 @@ defmodule OK do
     end
   end
 
+  @doc false
   defmacro def(signature, do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
     quote do
