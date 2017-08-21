@@ -279,8 +279,8 @@ defmodule OK do
 
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
   defp wrap_code_block(expression = {_, env, _}) do
-     {:__block__, env, [expression]}
-   end
+    {:__block__, env, [expression]}
+  end
 
   require Logger
 
@@ -290,6 +290,67 @@ defmodule OK do
   defmacro try(do: {:__block__, _env, lines}) do
     Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
     bind_match(lines)
+  end
+
+  @doc """
+  Lightweight notation for working with the values from serval failible components.
+
+  Values are extracted from an ok tuple using the in (`<-`) operator.
+  Any line using this operator that trys to match on an error tuple will result in early return.
+
+  If all bindings can be made, i.e. all functions returned `{:ok, value}`,
+  then the after block is executed to return the final value.
+
+  Return values from the after block are wrapped as an ok result,
+  unless they are already a result tuple.
+  The return value of a for comprehension is always a result monad
+
+      iex> OK.for do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...> after
+      ...>   a + b
+      ...> end
+      {:ok, 6.0}
+
+      iex> OK.for do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...> after
+      ...>   OK.success(a + b)
+      ...> end
+      {:ok, 6.0}
+
+      iex> OK.for do
+      ...>   a <- safe_div(8, 2)
+      ...>   _ <- safe_div(a, 2)
+      ...> after
+      ...>   {:error, :something_else}
+      ...> end
+      {:error, :something_else}
+
+  Regular matching using the `=` operator is also available,
+  for calculating intermediate values.
+
+      iex> OK.for do
+      ...>   a <- safe_div(8, 2)
+      ...>   b = 2.0
+      ...> after
+      ...>   a + b
+      ...> end
+      {:ok, 6.0}
+
+      iex> OK.for do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0) # error here
+      ...> after
+      ...>   a + b               # does not execute this line
+      ...> end
+      {:error, :zero_division}
+  """
+  defmacro for(do: binding, after: yield_block) do
+    {:__block__, _env, bindings} = wrap_code_block(binding)
+    expand_bindings(bindings, yield_block)
   end
 
   defmodule BindError do
@@ -310,6 +371,38 @@ defmodule OK do
       """
     end
   end
+
+  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
+    line = Keyword.get(env, :line)
+    quote line: line do
+      case unquote(right) do
+        {:ok, unquote(left)} ->
+          unquote(expand_bindings(rest, yield_block))
+        {:error, reason} ->
+          {:error, reason}
+        return ->
+          raise %BindError{
+            return: return,
+            lhs: unquote(Macro.to_string(left)),
+            rhs: unquote(Macro.to_string(right))}
+      end
+    end
+  end
+  defp expand_bindings([normal | rest], yield_block) do
+    quote do
+      unquote(normal)
+      unquote(expand_bindings(rest, yield_block))
+    end
+  end
+  defp expand_bindings([], yield_block) do
+    quote do
+      unquote(__MODULE__).wrap(unquote(yield_block))
+    end
+  end
+
+  def wrap({:ok, value}), do: {:ok, value}
+  def wrap({:error, reason}), do: {:error, reason}
+  def wrap(other), do: {:ok, other}
 
   defp bind_match([]) do
     quote do: nil
