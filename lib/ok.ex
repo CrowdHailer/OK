@@ -282,16 +282,6 @@ defmodule OK do
     {:__block__, env, [expression]}
   end
 
-  require Logger
-
-  @doc """
-  DEPRECATED: `OK.try` has been replaced with `OK.with`
-  """
-  defmacro try(do: {:__block__, _env, lines}) do
-    Logger.warn("DEPRECATED: `OK.try` has been replaced with `OK.with`")
-    bind_match(lines)
-  end
-
   @doc """
   Lightweight notation for working with the values from serval failible components.
 
@@ -350,7 +340,55 @@ defmodule OK do
   """
   defmacro for(do: binding, after: yield_block) do
     {:__block__, _env, bindings} = wrap_code_block(binding)
-    expand_bindings(bindings, yield_block)
+    safe_yield_block = quote do
+      unquote(__MODULE__).wrap(unquote(yield_block))
+    end
+    exception_clauses = quote do
+      reason -> {:error, reason}
+    end
+    expand_bindings(bindings, safe_yield_block, exception_clauses)
+  end
+
+  @doc """
+  Handle return value from several failible functions.
+
+  Values are extracted from an ok tuple using the in (`<-`) operator.
+  Any line using this operator that trys to match on an error tuple will result in early return.
+
+  If all bindings can be made, i.e. all functions returned `{:ok, value}`,
+  then the after block is executed to return the final value.
+
+  If any bind fails then the rescue block will be tried.
+
+  *Note: return value from after will be returned unwrapped*
+
+  ## Examples
+
+      iex> OK.try do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 2)
+      ...> after
+      ...>   a + b
+      ...> rescue
+      ...>   :zero_division ->
+      ...>     :nan
+      ...> end
+      6.0
+
+      iex> OK.try do
+      ...>   a <- safe_div(8, 2)
+      ...>   b <- safe_div(a, 0)
+      ...> after
+      ...>   a + b
+      ...> rescue
+      ...>   :zero_division ->
+      ...>     :nan
+      ...> end
+      :nan
+  """
+  defmacro try(do: bind_block, after: yield_block, rescue: exception_clauses) do
+    {:__block__, _env, bindings} = wrap_code_block(bind_block)
+    expand_bindings(bindings, yield_block, exception_clauses)
   end
 
   defmodule BindError do
@@ -372,14 +410,17 @@ defmodule OK do
     end
   end
 
-  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
+  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
     line = Keyword.get(env, :line)
     quote line: line do
       case unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(expand_bindings(rest, yield_block))
+          unquote(expand_bindings(rest, yield_block, exception_clauses))
         {:error, reason} ->
-          {:error, reason}
+          case reason do
+            unquote(exception_clauses)
+          end
+          # {:error, reason}
         return ->
           raise %BindError{
             return: return,
@@ -388,16 +429,14 @@ defmodule OK do
       end
     end
   end
-  defp expand_bindings([normal | rest], yield_block) do
+  defp expand_bindings([normal | rest], yield_block, exception_clauses) do
     quote do
       unquote(normal)
-      unquote(expand_bindings(rest, yield_block))
+      unquote(expand_bindings(rest, yield_block, exception_clauses))
     end
   end
-  defp expand_bindings([], yield_block) do
-    quote do
-      unquote(__MODULE__).wrap(unquote(yield_block))
-    end
+  defp expand_bindings([], yield_block, _exceptional_clauses) do
+    yield_block
   end
 
   def wrap({:ok, value}), do: {:ok, value}

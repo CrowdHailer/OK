@@ -17,7 +17,59 @@ See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handlin
 
 See [FAQ](#faq) at end of README for a few common question.
 
+## OK.for
+
+`OK.for/1` combines serveral functions that may fail.
+
+- Use the `<-` operator to match & extract a value for an `:ok` tuple.
+- Use the `=` operator as you normally would for pattern matching an untagged result.
+
+```elixir
+require OK
+
+OK.for do
+  user <- fetch_user(1)             # `<-` operator means func returns {:ok, user}
+  cart <- fetch_cart(1)             # `<-` again, {:ok, cart}
+  order = checkout(cart, user)      # `=` allows pattern matching on non-tagged funcs
+  saved_order <- save_order(order)
+after
+  saved_order                       # Value will be wrapped if not already a result tuple
+end
+```
+
+`OK.for/1` guarantees that it's return value is also in the structure of a result tuple.
+
+## OK.try
+
+`OK.try/1` combines serveral functions that may fail, and handles errors.
+
+This is useful when writing code that has it's own representation of errors.
+e.g. HTTP Responses.
+
+For example when using raxx to build responses the following code will always return a response.
+
+```elixir
+require OK
+import Raxx
+
+OK.try do
+  user <- fetch_user(1)             # `<-` operator means func returns {:ok, user}
+  cart <- fetch_cart(1)             # `<-` again, {:ok, cart}
+  order = checkout(cart, user)      # `=` allows pattern matching on non-tagged funcs
+  saved_order <- save_order(order)
+after
+  response(:created)                # Value will be returned unwrapped
+rescue
+  :user_not_found ->
+    response(:not_found)
+  :could_not_save ->
+    response(:internal_server_error)
+end
+```
+
 ## OK.with
+
+#### This macro is deprecated. Use instead `OK.try/1` or `OK.for/1`
 
 `OK.with/1` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with/1` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
 
