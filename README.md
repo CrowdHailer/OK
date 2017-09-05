@@ -15,6 +15,8 @@ The OK module works with result tuples by treating them as a result monad.
 
 See [Handling Errors in Elixir](http://insights.workshop14.io/2015/10/18/handling-errors-in-elixir-no-one-say-monad.html) for a more detailed explanation.
 
+See [FAQ](#faq) at end of README for a few common question.
+
 ## OK.with
 
 `OK.with/1` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with/1` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
@@ -96,7 +98,7 @@ else
 end
 ```
 
-## OK Pipeline Operator 
+## OK Pipeline Operator
 
 The OK pipeline macro (`~>>`) is equivalent to `bind`/`flat_map` in other
 languages, and this allows pipelining result tuples through multiple functions
@@ -130,6 +132,30 @@ case fetch_user(id) do
     create_guest_user()
 end
 ```
+
+## FAQ
+
+#### Why does `OK` not catch raised errors?
+
+Two reasons:
+- Exceptional input and errors are not the same thing,
+  `OK` leaves raising exceptions as a way to handle errors that should never happen.
+- Calls inside try/1 are not tail recursive since the VM needs to keep the stacktrace in case an exception happens.
+  [see source](https://github.com/elixir-lang/elixir/blob/22bd10a8170af0b187029d115abe4cc8edcf2ae6/lib/elixir/lib/kernel/special_forms.ex#L1622).
+
+#### What about other shapes of error and success?
+
+- Accepting any extra forms is a slippery slope, and they are not always unambiguous.
+  If a library is not returning errors as you like it is very easy to wrap in a custom function.
+
+  ```elixir
+  def fetch_foo(map) do
+    case Map.fetch(map, :foo) do
+      {:ok, foo} -> {:ok, foo}
+      :error -> {:error, :no_foo}
+    end
+  end
+  ```
 
 ## Additional External Links and Resources
 
