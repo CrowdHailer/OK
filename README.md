@@ -103,7 +103,7 @@ languages, and this allows pipelining result tuples through multiple functions
 for an extremely concise happy path.
 
 ```elixir
-import OK only: ["~>>": 2]
+import OK, only: ["~>>": 2]
 
 def get_employee_data(file, name) do
   {:ok, file}
