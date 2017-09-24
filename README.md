@@ -1,6 +1,6 @@
 # OK
 
-**Elegant error handling in Elixir, with result monads.**
+**Elegant error/exception handling in Elixir, with result monads.**
 
 - [Install from Hex](https://hex.pm/packages/ok)
 - [Documentation available on hexdoc](https://hexdocs.pm/ok)
@@ -64,6 +64,23 @@ rescue
     response(:not_found)
   :could_not_save ->
     response(:internal_server_error)
+end
+```
+
+## OK Pipeline Operator
+
+The OK pipeline macro (`~>>`) is equivalent to `bind`/`flat_map` in other
+languages, and this allows pipelining result tuples through multiple functions
+for an extremely concise happy path.
+
+```elixir
+import OK, only: ["~>>": 2]
+
+def get_employee_data(file, name) do
+  {:ok, file}
+  ~>> File.read
+  ~>> Poison.decode
+  ~>> Dict.fetch(name)
 end
 ```
 
@@ -147,23 +164,6 @@ OK.with do
 else
   :user_not_found ->
     OK.failure :unauthorized
-end
-```
-
-## OK Pipeline Operator
-
-The OK pipeline macro (`~>>`) is equivalent to `bind`/`flat_map` in other
-languages, and this allows pipelining result tuples through multiple functions
-for an extremely concise happy path.
-
-```elixir
-import OK, only: ["~>>": 2]
-
-def get_employee_data(file, name) do
-  {:ok, file}
-  ~>> File.read
-  ~>> Poison.decode
-  ~>> Dict.fetch(name)
 end
 ```
 
