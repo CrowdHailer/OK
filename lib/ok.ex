@@ -129,7 +129,7 @@ defmodule OK do
         {call, line, args}
     end
     quote do
-      case unquote(lhs) do
+      case (fn() -> unquote(lhs) end).() do
         {:ok, value} ->
           unquote({call, line, [{:value, [], OK} | args]})
         {:error, _reason} ->
