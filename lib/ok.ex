@@ -138,6 +138,26 @@ defmodule OK do
     end
   end
 
+  defmodule BadResultError do
+    defexception [:actual, :code]
+
+    def message(%{actual: actual, code: code}) do
+      """
+      final value from block was invalid, a result tuple was expected.
+
+          Code
+            #{code}
+
+          Expected output
+            {:ok, value} | {:error, reason}
+
+          Actual output
+            #{actual |> inspect}
+      """
+    end
+  end
+
+
   @doc """
   Composes multiple functions similar to Elixir's native `with` construct.
 
@@ -251,6 +271,8 @@ defmodule OK do
       case unquote(return) do
         result = {tag, _} when tag in [:ok, :error] ->
           result
+        wrong ->
+          raise %BadResultError{actual: wrong, code: unquote(Macro.to_string(List.last(lines)))}
       end
     end
   end
