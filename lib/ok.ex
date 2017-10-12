@@ -128,12 +128,14 @@ defmodule OK do
       {call, line, args} when is_list(args) ->
         {call, line, args}
     end
+    value = quote do: value
+    args = [value | args]
     quote do
       case (fn() -> unquote(lhs) end).() do
-        {:ok, value} ->
-          unquote({call, line, [{:value, [], OK} | args]})
-        {:error, _reason} ->
-          unquote(lhs)
+        {:ok, unquote(value)} ->
+          unquote({call, line, args})
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
