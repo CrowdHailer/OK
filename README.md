@@ -2,6 +2,11 @@
 
 **Elegant error/exception handling in Elixir, with result monads.**
 
+[![Hex pm](http://img.shields.io/hexpm/v/ok.svg?style=flat)](https://hex.pm/packages/ok)
+[![Build Status](https://secure.travis-ci.org/CrowdHailer/OK.svg?branch=master
+"Build Status")](https://travis-ci.org/CrowdHailer/OK)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 - [Install from Hex](https://hex.pm/packages/ok)
 - [Documentation available on hexdoc](https://hexdocs.pm/ok)
 
