@@ -10,7 +10,11 @@ defmodule OK.Mixfile do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
-      docs: [extras: ["README.md"], main: "readme"],
+      docs: [
+        main: "readme",
+        source_url: "https://github.com/CrowdHailer/OK",
+        extras: ["README.md"]
+      ],
       package: package()
     ]
   end
