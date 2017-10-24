@@ -24,7 +24,8 @@ defmodule OK.ErrorTest do
         Actual values
           bar(a) :: {:bad, 6}
     """
-    assert_raise OK.BindError, message, fn() ->
+
+    assert_raise OK.BindError, message, fn ->
       OK.with do
         a <- foo(6)
         b <- bar(a)
@@ -46,7 +47,8 @@ defmodule OK.ErrorTest do
         Actual values
           foo(6) :: {:ok, 6}
     """
-    assert_raise OK.BindError, message, fn() ->
+
+    assert_raise OK.BindError, message, fn ->
       OK.with do
         %{a: a} <- foo(6)
         b <- foo(a)

@@ -39,6 +39,7 @@ defmodule OK do
       {:ok, unquote(value)}
     end
   end
+
   @doc """
   Creates a failed result tuple with the given reason.
 
@@ -122,18 +123,23 @@ defmodule OK do
       {:error, :previous_bad}
   """
   defmacro lhs ~>> rhs do
-    {call, line, args} = case rhs do
-      {call, line, nil} ->
-        {call, line, []}
-      {call, line, args} when is_list(args) ->
-        {call, line, args}
-    end
+    {call, line, args} =
+      case rhs do
+        {call, line, nil} ->
+          {call, line, []}
+
+        {call, line, args} when is_list(args) ->
+          {call, line, args}
+      end
+
     value = quote do: value
     args = [value | args]
+
     quote do
-      case (fn() -> unquote(lhs) end).() do
+      case (fn -> unquote(lhs) end).() do
         {:ok, unquote(value)} ->
           unquote({call, line, args})
+
         {:error, reason} ->
           {:error, reason}
       end
@@ -249,6 +255,7 @@ defmodule OK do
   defmacro with(do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
     return = bind_match(lines)
+
     quote do
       case unquote(return) do
         result = {tag, _} when tag in [:ok, :error] ->
@@ -256,30 +263,37 @@ defmodule OK do
       end
     end
   end
+
   defmacro with(do: code, else: exceptional) do
     {:__block__, _env, normal} = wrap_code_block(code)
-    exceptional_clauses = exceptional ++ (quote do
-      reason ->
-        {:error, reason}
-    end)
+
+    exceptional_clauses =
+      exceptional ++
+        quote do
+          reason ->
+            {:error, reason}
+        end
+
     quote do
       unquote(bind_match(normal))
       |> case do
-        {:ok, value} ->
-          {:ok, value}
-        {:error, reason} ->
-          case reason do
-            unquote(exceptional_clauses)
-          end
-          |> case do
-            result = {tag, _} when tag in [:ok, :error] ->
-              result
-          end
-      end
+           {:ok, value} ->
+             {:ok, value}
+
+           {:error, reason} ->
+             case reason do
+               unquote(exceptional_clauses)
+             end
+             |> case do
+                  result = {tag, _} when tag in [:ok, :error] ->
+                    result
+                end
+         end
     end
   end
 
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+
   defp wrap_code_block(expression = {_, env, _}) do
     {:__block__, env, [expression]}
   end
@@ -342,12 +356,17 @@ defmodule OK do
   """
   defmacro for(do: binding, after: yield_block) do
     {:__block__, _env, bindings} = wrap_code_block(binding)
-    safe_yield_block = quote do
-      unquote(__MODULE__).wrap(unquote(yield_block))
-    end
-    exception_clauses = quote do
-      reason -> {:error, reason}
-    end
+
+    safe_yield_block =
+      quote do
+        unquote(__MODULE__).wrap(unquote(yield_block))
+      end
+
+    exception_clauses =
+      quote do
+        reason -> {:error, reason}
+      end
+
     expand_bindings(bindings, safe_yield_block, exception_clauses)
   end
 
@@ -414,29 +433,35 @@ defmodule OK do
 
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
     line = Keyword.get(env, :line)
+
     quote line: line do
       case unquote(right) do
         {:ok, unquote(left)} ->
           unquote(expand_bindings(rest, yield_block, exception_clauses))
+
         {:error, reason} ->
           case reason do
             unquote(exception_clauses)
           end
-          # {:error, reason}
+
+        # {:error, reason}
         return ->
           raise %BindError{
             return: return,
             lhs: unquote(Macro.to_string(left)),
-            rhs: unquote(Macro.to_string(right))}
+            rhs: unquote(Macro.to_string(right))
+          }
       end
     end
   end
+
   defp expand_bindings([normal | rest], yield_block, exception_clauses) do
     quote do
       unquote(normal)
       unquote(expand_bindings(rest, yield_block, exception_clauses))
     end
   end
+
   defp expand_bindings([], yield_block, _exceptional_clauses) do
     yield_block
   end
@@ -448,27 +473,30 @@ defmodule OK do
   defp bind_match([]) do
     quote do: nil
   end
+
   defp bind_match([{:<-, env, [left, right]} | rest]) do
     line = Keyword.get(env, :line)
     lhs_string = Macro.to_string(left)
     rhs_string = Macro.to_string(right)
     tmp = quote do: tmp
+
     quote line: line do
       case unquote(tmp) = unquote(right) do
         {:ok, unquote(left)} ->
           unquote(bind_match(rest) || tmp)
+
         result = {:error, _} ->
           result
+
         return ->
-          raise %BindError{
-            return: return,
-            lhs: unquote(lhs_string),
-            rhs: unquote(rhs_string)}
+          raise %BindError{return: return, lhs: unquote(lhs_string), rhs: unquote(rhs_string)}
       end
     end
   end
+
   defp bind_match([normal | rest]) do
     tmp = quote do: tmp
+
     quote do
       unquote(tmp) = unquote(normal)
       unquote(bind_match(rest) || tmp)
