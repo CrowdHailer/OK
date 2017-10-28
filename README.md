@@ -180,7 +180,7 @@ success or failure while hiding implementation details about how that result is
 structured.
 
 ```elixir
-import OK, only: [success: 2, failure: 2]
+import OK, only: [success: 1, failure: 1]
 
 case fetch_user(id) do
   success(user) ->
