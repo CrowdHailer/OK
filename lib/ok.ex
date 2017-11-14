@@ -257,6 +257,8 @@ defmodule OK do
     return = bind_match(lines)
 
     quote do
+      IO.warn("`OK.with/1` is deprecated. Use instead `OK.try/1` or `OK.for/1`", Macro.Env.stacktrace(__ENV__))
+
       case unquote(return) do
         result = {tag, _} when tag in [:ok, :error] ->
           result
