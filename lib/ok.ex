@@ -295,9 +295,11 @@ defmodule OK do
   end
 
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
-
   defp wrap_code_block(expression = {_, env, _}) do
     {:__block__, env, [expression]}
+  end
+  defp wrap_code_block(literal) do
+    {:__block__, [], [literal]}
   end
 
   @doc """
@@ -355,6 +357,9 @@ defmodule OK do
       ...>   a + b               # does not execute this line
       ...> end
       {:error, :zero_division}
+
+      iex> OK.for do: :literal, after: :result
+      {:ok, :result}
   """
   defmacro for(do: binding, after: yield_block) do
     {:__block__, _env, bindings} = wrap_code_block(binding)
