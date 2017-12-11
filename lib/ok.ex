@@ -376,6 +376,23 @@ defmodule OK do
 
     expand_bindings(bindings, safe_yield_block, exception_clauses)
   end
+  defmacro for(_) do
+    description = """
+    OK.for/1 requires `do` and `after` clauses. e.g.
+
+        OK.for do
+          a <- safe_div(8, 2)
+          b <- safe_div(a, 2)
+        after
+          a + b
+        end
+    """
+    raise %SyntaxError{
+      file: __ENV__.file,
+      line: __ENV__.line,
+      description: description
+    }
+  end
 
   @doc """
   Handle return value from several failible functions.
@@ -417,6 +434,26 @@ defmodule OK do
   defmacro try(do: bind_block, after: yield_block, rescue: exception_clauses) do
     {:__block__, _env, bindings} = wrap_code_block(bind_block)
     expand_bindings(bindings, yield_block, exception_clauses)
+  end
+  defmacro try(_) do
+    description = """
+    OK.try/1 requires `do`, `after` and `rescue` clauses. e.g.
+
+        OK.try do
+          a <- safe_div(8, 2)
+          b <- safe_div(a, 0)
+        after
+          a + b
+        rescue
+          :zero_division ->
+            :nan
+        end
+    """
+    raise %SyntaxError{
+      file: __ENV__.file,
+      line: __ENV__.line,
+      description: description
+    }
   end
 
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
