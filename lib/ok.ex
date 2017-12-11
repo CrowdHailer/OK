@@ -414,25 +414,6 @@ defmodule OK do
     expand_bindings(bindings, yield_block, exception_clauses)
   end
 
-  defmodule BindError do
-    defexception [:return, :lhs, :rhs]
-
-    def message(%{return: return, lhs: lhs, rhs: rhs}) do
-      """
-      no binding to right hand side value: '#{inspect(return)}'
-
-          Code
-            #{lhs} <- #{rhs}
-
-          Expected signature
-            #{rhs} :: {:ok, #{lhs}} | {:error, reason}
-
-          Actual values
-            #{rhs} :: #{inspect(return)}
-      """
-    end
-  end
-
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
     line = Keyword.get(env, :line)
 
@@ -446,9 +427,8 @@ defmodule OK do
             unquote(exception_clauses)
           end
 
-        # {:error, reason}
         return ->
-          raise %BindError{
+          raise %OK.BindError{
             return: return,
             lhs: unquote(Macro.to_string(left)),
             rhs: unquote(Macro.to_string(right))
@@ -491,7 +471,7 @@ defmodule OK do
           result
 
         return ->
-          raise %BindError{return: return, lhs: unquote(lhs_string), rhs: unquote(rhs_string)}
+          raise %OK.BindError{return: return, lhs: unquote(lhs_string), rhs: unquote(rhs_string)}
       end
     end
   end
