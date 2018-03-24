@@ -526,4 +526,30 @@ defmodule OK do
       unquote(bind_match(rest) || tmp)
     end
   end
+
+  @doc """
+  Transform every element of a list with a mapping function.
+  The mapping function must return a result tuple.
+
+  If all of the result tuples are tagged :ok, then it returns a list tagged with :ok.
+  If one or more of the result tuples are tagged :error, it returns the first error.
+
+  ## Examples
+
+  iex> OK.map_all(1..3, &safe_div(6, &1))
+  {:ok, [6.0, 3.0, 2.0]}
+
+  iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
+  {:error, :zero_division}
+  """
+
+  def map_all(li, fun) do
+    result = Enum.reduce_while li, [], fn val, acc ->
+      case fun.(val) do
+        {:ok, val} -> {:cont, [val | acc]}
+        {:error, _} = err -> {:halt, err}
+      end
+    end
+    if is_list(result) do {:ok, Enum.reverse(result)} else result end
+  end
 end
