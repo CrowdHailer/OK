@@ -165,10 +165,10 @@ OK.with do
   cart <- fetch_cart(1)
   order = checkout(cart, user)
   saved <- save_order(order)
-  OK.success saved
+  OK.success saved               # Returns {:ok, saved}
 else
   :user_not_found ->
-    OK.failure :unauthorized
+    OK.failure :unauthorized     # Returns {:error, :unauthorized}
 end
 ```
 
