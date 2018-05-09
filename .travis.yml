@@ -1,9 +1,6 @@
 language: elixir
 elixir:
-  - 1.5.0
-  - 1.5.1
-  - 1.5.2
+  - 1.6.5
 otp_release:
-  - 19.2
   - 20.0
-script: "MIX_ENV=test mix local.hex --force && MIX_ENV=test mix do deps.get, test"
+script: "MIX_ENV=test mix local.hex --force && MIX_ENV=test mix do deps.get, test" && mix format --check-formatted
