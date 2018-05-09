@@ -257,7 +257,10 @@ defmodule OK do
     return = bind_match(lines)
 
     quote do
-      IO.warn("`OK.with/1` is deprecated. Use instead `OK.try/1` or `OK.for/1`", Macro.Env.stacktrace(__ENV__))
+      IO.warn(
+        "`OK.with/1` is deprecated. Use instead `OK.try/1` or `OK.for/1`",
+        Macro.Env.stacktrace(__ENV__)
+      )
 
       case unquote(return) do
         result = {tag, _} when tag in [:ok, :error] ->
@@ -279,25 +282,27 @@ defmodule OK do
     quote do
       unquote(bind_match(normal))
       |> case do
-           {:ok, value} ->
-             {:ok, value}
+        {:ok, value} ->
+          {:ok, value}
 
-           {:error, reason} ->
-             case reason do
-               unquote(exceptional_clauses)
-             end
-             |> case do
-                  result = {tag, _} when tag in [:ok, :error] ->
-                    result
-                end
-         end
+        {:error, reason} ->
+          case reason do
+            unquote(exceptional_clauses)
+          end
+          |> case do
+            result = {tag, _} when tag in [:ok, :error] ->
+              result
+          end
+      end
     end
   end
 
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+
   defp wrap_code_block(expression = {_, env, _}) do
     {:__block__, env, [expression]}
   end
+
   defp wrap_code_block(literal) do
     {:__block__, [], [literal]}
   end
@@ -376,6 +381,7 @@ defmodule OK do
 
     expand_bindings(bindings, safe_yield_block, exception_clauses)
   end
+
   defmacro for(_) do
     description = """
     OK.for/1 requires `do` and `after` clauses. e.g.
@@ -387,6 +393,7 @@ defmodule OK do
           a + b
         end
     """
+
     raise %SyntaxError{
       file: __ENV__.file,
       line: __ENV__.line,
@@ -435,6 +442,7 @@ defmodule OK do
     {:__block__, _env, bindings} = wrap_code_block(bind_block)
     expand_bindings(bindings, yield_block, exception_clauses)
   end
+
   defmacro try(_) do
     description = """
     OK.try/1 requires `do`, `after` and `rescue` clauses. e.g.
@@ -449,6 +457,7 @@ defmodule OK do
             :nan
         end
     """
+
     raise %SyntaxError{
       file: __ENV__.file,
       line: __ENV__.line,
