@@ -11,6 +11,23 @@ defmodule OK do
   """
 
   @doc """
+  Applies a function to the interior value of a result tuple.
+
+  If the tuple is tagged `:ok` the value will be mapped by the function.
+  A tuple tagged `:error` will be unchanged.
+
+  ## Examples
+
+      iex> OK.map({:ok, 2}, fn (x) -> 2 * x end)
+      {:ok, 4}
+
+      iex> OK.map({:error, :some_reason}, fn (x) -> 2 * x end)
+      {:error, :some_reason}
+  """
+  def map({:ok, value}, func) when is_function(func, 1), do: {:ok, func.(value)}
+  def map(failure = {:error, _reason}, _func), do: failure
+
+  @doc """
   Takes a result tuple and a next function.
   If the result tuple is tagged as a success then its value will be passed to the next function.
   If the tag is failure then the next function is skipped.
@@ -59,7 +76,7 @@ defmodule OK do
 
   Optionally provide a reason why variable is required.
 
-  ## Example
+  ## Examples
 
       iex> OK.required(:some)
       {:ok, :some}
@@ -73,6 +90,30 @@ defmodule OK do
   def required(value, reason \\ :value_required)
   def required(nil, reason), do: {:error, reason}
   def required(value, _reason), do: {:ok, value}
+
+  @doc """
+  Pipeline version of `map/2`.
+
+  ## Examples
+
+      iex> {:ok, 5} ~> Integer.to_string
+      {:ok, "5"}
+
+      iex> {:error, :zero_division_error} ~> Integer.to_string
+      {:error, :zero_division_error}
+
+      iex> {:ok, "a,b"} ~> String.split(",")
+      {:ok, ["a", "b"]}
+  """
+  defmacro lhs ~> {call, line, args} do
+    # NOTE 1 arity function looks like 0 arity function in pipe
+    value = quote do: value
+    args = [value | args || []]
+
+    quote do
+      OK.map(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
+    end
+  end
 
   @doc """
   The OK result pipe operator `~>>`, or result monad bind operator, is similar
