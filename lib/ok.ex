@@ -586,20 +586,25 @@ defmodule OK do
 
   ## Examples
 
-  iex> OK.map_all(1..3, &safe_div(6, &1))
-  {:ok, [6.0, 3.0, 2.0]}
+      iex> OK.map_all(1..3, &safe_div(6, &1))
+      {:ok, [6.0, 3.0, 2.0]}
 
-  iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
-  {:error, :zero_division}
+      iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
+      {:error, :zero_division}
   """
 
-  def map_all(li, fun) do
-    result = Enum.reduce_while li, [], fn val, acc ->
-      case fun.(val) do
-        {:ok, val} -> {:cont, [val | acc]}
-        {:error, _} = err -> {:halt, err}
-      end
-    end
-    if is_list(result) do {:ok, Enum.reverse(result)} else result end
+  def map_all(list, fun) do
+    result =
+      Enum.reduce_while(list, [], fn value, acc ->
+        case fun.(value) do
+          {:ok, value} ->
+            {:cont, [value | acc]}
+
+          {:error, _} = error ->
+            {:halt, error}
+        end
+      end)
+
+    if is_list(result), do: {:ok, Enum.reverse(result)}, else: result
   end
 end
