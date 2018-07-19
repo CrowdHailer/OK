@@ -509,7 +509,7 @@ defmodule OK do
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
     line = Keyword.get(env, :line)
 
-    quote line: line do
+    quote line: line, generated: true do
       case unquote(right) do
         {:ok, unquote(left)} ->
           unquote(expand_bindings(rest, yield_block, exception_clauses))
