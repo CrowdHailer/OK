@@ -300,7 +300,8 @@ defmodule OK do
 
   defmacro with(do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
-    with_return_clause({:with, [], with_do_lines(lines)})
+    block_lines = with_do_lines(lines)
+    with_return_clause({:with, [], block_lines})
   end
 
   defmacro with(do: code, else: exceptions) do
@@ -521,9 +522,31 @@ defmodule OK do
 
   defp wrap_code_block(literal), do: {:__block__, [], [literal]}
 
+  defp with_expr({:<-, env, [lhs = {:_, _, _}, rhs]}) do
+    new_rhs =
+      quote do
+        case unquote(rhs) do
+          {:ok, _} ->
+            {:ok, nil}
+
+          {:error, reason} ->
+            {:error, reason}
+
+          return ->
+            raise %OK.BindError{
+              return: return,
+              lhs: unquote(Macro.to_string(lhs)),
+              rhs: unquote(Macro.to_string(rhs))
+            }
+        end
+      end
+
+    {:<-, env, [{:ok, lhs}, new_rhs]}
+  end
+
   defp with_expr({:<-, env, [lhs, rhs]}) do
     new_rhs =
-      quote location: :keep do
+      quote do
         case unquote(rhs) do
           {:ok, unquote(lhs)} ->
             {:ok, unquote(lhs)}
@@ -545,8 +568,6 @@ defmodule OK do
 
   defp with_expr(quote_), do: quote_
 
-  defp with_return_expr(ok_tuple = {:ok, _}), do: [do: ok_tuple]
-
   defp with_return_expr({:<-, env1, [{:_, env2, ctx}, rhs]}) do
     with_return_expr({:<-, env1, [{:OKVAR, env2, ctx}, rhs]})
   end
@@ -561,7 +582,7 @@ defmodule OK do
     {with_expr(quote_), [do: {:ok, left}]}
   end
 
-  defp with_return_expr(quote_), do: {with_expr(quote_), [do: quote_]}
+  defp with_return_expr(quote_), do: [do: quote_]
 
   defp with_else_expr({:->, env, [[lhs], rhs]}) do
     {:->, env, [[error: lhs], rhs]}
