@@ -91,6 +91,10 @@ defmodule OK do
   def required(nil, reason), do: {:error, reason}
   def required(value, _reason), do: {:ok, value}
 
+  def wrap({:ok, value}), do: {:ok, value}
+  def wrap({:error, reason}), do: {:error, reason}
+  def wrap(other), do: {:ok, other}
+
   @doc """
   Pipeline version of `map/2`.
 
@@ -293,7 +297,7 @@ defmodule OK do
   Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs)
   for more examples.
   """
-  defmacro with(do: code) do
+  defmacro _with(do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
     return = bind_match(lines)
 
@@ -310,7 +314,7 @@ defmodule OK do
     end
   end
 
-  defmacro with(do: code, else: exceptional) do
+  defmacro _with(do: code, else: exceptional) do
     {:__block__, _env, normal} = wrap_code_block(code)
 
     exceptional_clauses =
@@ -338,14 +342,52 @@ defmodule OK do
     end
   end
 
-  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+  defmacro with(do: code), do: __with(do: code)
 
-  defp wrap_code_block(expression = {_, env, _}) do
-    {:__block__, env, [expression]}
+  defmacro with(do: code, else: exceptions) do
+    {:with, env, new_lines} = __with(do: code)
+
+    IO.inspect(exceptions, label: "`OK._with + else` exceptions")
+    catchall = {:->, [], [[{:OK, [], nil}], {:OK, [], nil}]}
+    do_line_index = length(new_lines) - 1
+    new_lines = List.update_at(new_lines, do_line_index, fn line ->
+      else_lines = Enum.map(exceptions, &map_else_quote/1)
+      List.insert_at(line, 1, {:else, else_lines ++ [catchall]})
+    end)
+
+    IO.inspect(new_lines, label: "`OK.with + else` new_lines")
+    {:with, env, new_lines}
   end
 
-  defp wrap_code_block(literal) do
-    {:__block__, [], [literal]}
+  defp __with(do: code) do
+    {:__block__, _env, lines} = wrap_code_block(code)
+    # return = bind_match(lines)
+
+    # line_length = length(lines)
+    # IO.inspect(code, label: :code)
+    # IO.inspect(lines, label: "`OK._with`")
+    # IO.inspect(return, label: :return)
+
+    last_index = length(lines) - 1
+    new_lines =
+      lines
+      |> Enum.with_index()
+      |> Enum.reduce([], fn
+        ({line, index}, acc) when index === last_index ->
+          case map_return_quote(line) do
+            {context, return} ->
+              [return | [context | acc]]
+            return ->
+              [return | acc]
+          end
+
+        ({line, _}, acc) ->
+          [map_quote(line) | acc]
+      end)
+      |> Enum.reverse()
+
+    IO.inspect(new_lines, label: "`OK._with` new_lines")
+    {:with, [], new_lines}
   end
 
   @doc """
@@ -449,9 +491,7 @@ defmodule OK do
   Any line using this operator that trys to match on an error tuple will result in early return.
 
   If all bindings can be made, i.e. all functions returned `{:ok, value}`,
-  then the after block is executed to return the final value.
-
-  If any bind fails then the rescue block will be tried.
+  ... any bind fails then the else block will be tried.
 
   *Note: return value from after will be returned unwrapped*
 
@@ -540,9 +580,72 @@ defmodule OK do
     yield_block
   end
 
-  def wrap({:ok, value}), do: {:ok, value}
-  def wrap({:error, reason}), do: {:error, reason}
-  def wrap(other), do: {:ok, other}
+  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+
+  defp wrap_code_block(expression = {_, env, _}) do
+    {:__block__, env, [expression]}
+  end
+
+  defp wrap_code_block(literal), do: {:__block__, [], [literal]}
+
+  #############################################################################
+  # NEW (below)
+  #############################################################################
+
+  # defp map_quote({:<-, env, [left = {:_, env, nil}, right]}) do
+  #   # {:<-, env, [{:ok, {:___ok___, env, nil}}, right]}
+  #   {:<-, env, [{:ok, left}, right]}
+  # end
+  defp map_quote({:<-, env, [left, right]}) do
+    {:<-, env, [{:ok, left}, right]}
+  end
+  defp map_quote(quote_), do: quote_
+
+  defp map_else_quote({:->, env, [[match], right]}) do
+    {:->, env, [[error: match], right]}
+  end
+  defp map_else_quote(_) do
+    description = """
+    OK.with/1 `else` clause requires at least one match
+
+        OK.with do
+          ...
+        else
+          :zero_division ->
+            :nan
+        end
+    """
+
+    raise %SyntaxError{
+      file: __ENV__.file,
+      line: __ENV__.line,
+      description: description
+    }
+  end
+
+  defp map_return_quote({:<-, env1, [{:_, env2, ctx}, right]}) do
+    # IO.inspect(quote_, label: "map_return_quote with _ assignment")
+    line = Keyword.get(env2, :line)
+    left = {:OK, [line: line], ctx}
+    new_quote = {
+      map_quote({:<-, env1, [left, right]}),
+      [do: {:ok, {:OK, [line: line + 1], ctx}}]
+    }
+    IO.inspect(new_quote, label: "map_return_quote with _ assignment")
+  end
+  defp map_return_quote(quote_ = {op, _, [left, _]}) when op in [:<-, :=] do
+    {map_quote(quote_), [do: {:ok, left}]}
+  end
+  defp map_return_quote(tuple_quote = {:ok, {_, _, _}}) do
+    [do: tuple_quote]
+  end
+  defp map_return_quote(quote_) do
+    {map_quote(quote_), [do: quote_]}
+  end
+
+  #############################################################################
+  # NEW (above)
+  #############################################################################
 
   defp bind_match([]) do
     quote do: nil
