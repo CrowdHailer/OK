@@ -297,101 +297,30 @@ defmodule OK do
   Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs)
   for more examples.
   """
-  defmacro _with(do: code) do
+
+  defmacro with(do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
-    return = bind_match(lines)
-
-    quote do
-      IO.warn(
-        "`OK.with/1` is deprecated. Use instead `OK.try/1` or `OK.for/1`",
-        Macro.Env.stacktrace(__ENV__)
-      )
-
-      case unquote(return) do
-        result = {tag, _} when tag in [:ok, :error] ->
-          result
-      end
-    end
+    with_return_clause({:with, [], with_do_lines(lines)})
   end
-
-  defmacro _with(do: code, else: exceptional) do
-    {:__block__, _env, normal} = wrap_code_block(code)
-
-    exceptional_clauses =
-      exceptional ++
-        quote do
-          reason ->
-            {:error, reason}
-        end
-
-    quote do
-      unquote(bind_match(normal))
-      |> case do
-        {:ok, value} ->
-          {:ok, value}
-
-        {:error, reason} ->
-          case reason do
-            unquote(exceptional_clauses)
-          end
-          |> case do
-            result = {tag, _} when tag in [:ok, :error] ->
-              result
-          end
-      end
-    end
-  end
-
-  defmacro with(do: code), do: __with(do: code)
 
   defmacro with(do: code, else: exceptions) do
-    {:with, env, new_lines} = __with(do: code)
+    {:__block__, _env, lines} = wrap_code_block(code)
 
-    IO.inspect(exceptions, label: "`OK._with + else` exceptions")
-    catchall = {:->, [], [[{:OK, [], nil}], {:OK, [], nil}]}
-    do_line_index = length(new_lines) - 1
-    new_lines = List.update_at(new_lines, do_line_index, fn line ->
-      else_lines = Enum.map(exceptions, &map_else_quote/1)
-      List.insert_at(line, 1, {:else, else_lines ++ [catchall]})
+    block_lines = with_do_lines(lines)
+    else_lines = Enum.map(exceptions, &with_else_expr/1)
+
+    # catchall_clause = {:->, [], [[{:OK, [], nil}], {:OK, [], nil}]}
+    do_line_index = length(block_lines) - 1
+    block_lines = List.update_at(block_lines, do_line_index, fn do_line ->
+      List.insert_at(do_line, 1, {:else, else_lines})
     end)
 
-    IO.inspect(new_lines, label: "`OK.with + else` new_lines")
-    {:with, env, new_lines}
-  end
-
-  defp __with(do: code) do
-    {:__block__, _env, lines} = wrap_code_block(code)
-    # return = bind_match(lines)
-
-    # line_length = length(lines)
-    # IO.inspect(code, label: :code)
-    # IO.inspect(lines, label: "`OK._with`")
-    # IO.inspect(return, label: :return)
-
-    last_index = length(lines) - 1
-    new_lines =
-      lines
-      |> Enum.with_index()
-      |> Enum.reduce([], fn
-        ({line, index}, acc) when index === last_index ->
-          case map_return_quote(line) do
-            {context, return} ->
-              [return | [context | acc]]
-            return ->
-              [return | acc]
-          end
-
-        ({line, _}, acc) ->
-          [map_quote(line) | acc]
-      end)
-      |> Enum.reverse()
-
-    IO.inspect(new_lines, label: "`OK._with` new_lines")
-    {:with, [], new_lines}
+    with_return_clause({:with, [], block_lines})
   end
 
   @doc """
-  Lightweight notation for working with the values from serval failible components.
+  Lightweight notation for working with the values from several failable
+  components.
 
   Values are extracted from an ok tuple using the in (`<-`) operator.
   Any line using this operator that trys to match on an error tuple will result in early return.
@@ -588,64 +517,74 @@ defmodule OK do
 
   defp wrap_code_block(literal), do: {:__block__, [], [literal]}
 
-  #############################################################################
-  # NEW (below)
-  #############################################################################
+  defp with_expr({:<-, env, [lhs, rhs]}) do
+    new_rhs = quote location: :keep do
+      case unquote(rhs) do
+        {:ok, unquote(lhs)} ->
+          {:ok, unquote(lhs)}
 
-  # defp map_quote({:<-, env, [left = {:_, env, nil}, right]}) do
-  #   # {:<-, env, [{:ok, {:___ok___, env, nil}}, right]}
-  #   {:<-, env, [{:ok, left}, right]}
-  # end
-  defp map_quote({:<-, env, [left, right]}) do
-    {:<-, env, [{:ok, left}, right]}
-  end
-  defp map_quote(quote_), do: quote_
+        {:error, reason} ->
+          {:error, reason}
 
-  defp map_else_quote({:->, env, [[match], right]}) do
-    {:->, env, [[error: match], right]}
+        return -> raise %OK.BindError{
+          return: return,
+          lhs: unquote(Macro.to_string(lhs)),
+          rhs: unquote(Macro.to_string(rhs)),
+        }
+      end
+    end
+    {:<-, env, [{:ok, lhs}, new_rhs]}
   end
-  defp map_else_quote(_) do
-    description = """
-    OK.with/1 `else` clause requires at least one match
+  defp with_expr(quote_), do: quote_
 
-        OK.with do
-          ...
-        else
-          :zero_division ->
-            :nan
-        end
-    """
+  defp with_return_expr(ok_tuple = {:ok, _}), do: [do: ok_tuple]
+  defp with_return_expr({:<-, env1, [{:_, env2, ctx}, rhs]}) do
+    with_return_expr({:<-, env1, [{:OKVAR, env2, ctx}, rhs]})
+  end
+  defp with_return_expr(expr = {:<-, _, [{var_name, env, ctx}, _]}) do
+    line = Keyword.get(env, :line)
+    return = [do: {:ok, {var_name, [line: line + 1], ctx}}]
+    {with_expr(expr), return}
+  end
+  defp with_return_expr(quote_ = {:=, _, [left, _]}) do
+    {with_expr(quote_), [do: {:ok, left}]}
+  end
+  defp with_return_expr(quote_), do: {with_expr(quote_), [do: quote_]}
 
-    raise %SyntaxError{
-      file: __ENV__.file,
-      line: __ENV__.line,
-      description: description
-    }
-  end
-
-  defp map_return_quote({:<-, env1, [{:_, env2, ctx}, right]}) do
-    # IO.inspect(quote_, label: "map_return_quote with _ assignment")
-    line = Keyword.get(env2, :line)
-    left = {:OK, [line: line], ctx}
-    new_quote = {
-      map_quote({:<-, env1, [left, right]}),
-      [do: {:ok, {:OK, [line: line + 1], ctx}}]
-    }
-    IO.inspect(new_quote, label: "map_return_quote with _ assignment")
-  end
-  defp map_return_quote(quote_ = {op, _, [left, _]}) when op in [:<-, :=] do
-    {map_quote(quote_), [do: {:ok, left}]}
-  end
-  defp map_return_quote(tuple_quote = {:ok, {_, _, _}}) do
-    [do: tuple_quote]
-  end
-  defp map_return_quote(quote_) do
-    {map_quote(quote_), [do: quote_]}
+  defp with_else_expr({:->, env, [[lhs], rhs]}) do
+    {:->, env, [[error: lhs], rhs]}
   end
 
-  #############################################################################
-  # NEW (above)
-  #############################################################################
+  defp with_do_lines(lines, new_lines \\ [])
+  defp with_do_lines([], new_lines), do: Enum.reverse(new_lines)
+  defp with_do_lines([line | []], new_lines) do
+    new_lines = case with_return_expr(line) do
+      {last, return} ->
+        [return | [last | new_lines]]
+
+      return ->
+        [return | new_lines]
+    end
+    with_do_lines([], new_lines)
+  end
+  defp with_do_lines([line | rest], new_lines) do
+    with_do_lines(rest, [with_expr(line) | new_lines])
+  end
+
+  defp with_return_clause(with_quote) do
+    quote location: :keep do
+      case unquote(with_quote) do
+        {:ok, val} ->
+          {:ok, val}
+
+        {:error, reason} ->
+          {:error, reason}
+
+        return ->
+          raise %CaseClauseError{term: return}
+      end
+    end
+  end
 
   defp bind_match([]) do
     quote do: nil
