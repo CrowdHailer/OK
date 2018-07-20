@@ -602,39 +602,6 @@ defmodule OK do
     end
   end
 
-  defp bind_match([]) do
-    quote do: nil
-  end
-
-  defp bind_match([{:<-, env, [left, right]} | rest]) do
-    line = Keyword.get(env, :line)
-    lhs_string = Macro.to_string(left)
-    rhs_string = Macro.to_string(right)
-    tmp = quote do: tmp
-
-    quote line: line do
-      case unquote(tmp) = unquote(right) do
-        {:ok, unquote(left)} ->
-          unquote(bind_match(rest) || tmp)
-
-        result = {:error, _} ->
-          result
-
-        return ->
-          raise %OK.BindError{return: return, lhs: unquote(lhs_string), rhs: unquote(rhs_string)}
-      end
-    end
-  end
-
-  defp bind_match([normal | rest]) do
-    tmp = quote do: tmp
-
-    quote do
-      unquote(tmp) = unquote(normal)
-      unquote(bind_match(rest) || tmp)
-    end
-  end
-
   @doc """
   Transform every element of a list with a mapping function.
   The mapping function must return a result tuple.
