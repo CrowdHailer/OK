@@ -309,10 +309,10 @@ defmodule OK do
     block_lines = with_do_lines(lines)
     else_lines = Enum.map(exceptions, &with_else_expr/1)
 
-    catchall_clause = {:->, [], [[{:OKVAR, [], nil}], {:OKVAR, [], nil}]}
+    default_clause = {:->, [], [[{:OKVAR, [], nil}], {:OKVAR, [], nil}]}
     do_line_index = length(block_lines) - 1
     block_lines = List.update_at(block_lines, do_line_index, fn do_line ->
-      List.insert_at(do_line, 1, {:else, else_lines ++ [catchall_clause]})
+      List.insert_at(do_line, 1, {:else, else_lines ++ [default_clause]})
     end)
 
     with_return_clause({:with, [], block_lines})
@@ -420,7 +420,9 @@ defmodule OK do
   Any line using this operator that trys to match on an error tuple will result in early return.
 
   If all bindings can be made, i.e. all functions returned `{:ok, value}`,
-  ... any bind fails then the else block will be tried.
+  then the after block is executed to return the final value.
+
+  If any bind fails then the rescue block will be tried.
 
   *Note: return value from after will be returned unwrapped*
 
