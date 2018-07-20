@@ -309,10 +309,10 @@ defmodule OK do
     block_lines = with_do_lines(lines)
     else_lines = Enum.map(exceptions, &with_else_expr/1)
 
-    # catchall_clause = {:->, [], [[{:OK, [], nil}], {:OK, [], nil}]}
+    catchall_clause = {:->, [], [[{:OKVAR, [], nil}], {:OKVAR, [], nil}]}
     do_line_index = length(block_lines) - 1
     block_lines = List.update_at(block_lines, do_line_index, fn do_line ->
-      List.insert_at(do_line, 1, {:else, else_lines})
+      List.insert_at(do_line, 1, {:else, else_lines ++ [catchall_clause]})
     end)
 
     with_return_clause({:with, [], block_lines})
