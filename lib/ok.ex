@@ -300,14 +300,14 @@ defmodule OK do
 
   defmacro with(do: code) do
     {:__block__, _env, lines} = wrap_code_block(code)
-    block_lines = with_do_lines(lines)
-    with_return_clause({:with, [], block_lines})
+    block_lines = with_block(lines)
+    with_return({:with, [], block_lines})
   end
 
   defmacro with(do: code, else: exceptions) do
     {:__block__, _env, lines} = wrap_code_block(code)
 
-    block_lines = with_do_lines(lines)
+    block_lines = with_block(lines)
     else_lines = Enum.map(exceptions, &with_else_expr/1)
 
     default_clause = {:->, [], [[{:OKVAR, [], nil}], {:OKVAR, [], nil}]}
@@ -318,7 +318,7 @@ defmodule OK do
         List.insert_at(do_line, 1, {:else, else_lines ++ [default_clause]})
       end)
 
-    with_return_clause({:with, [], block_lines})
+    with_return({:with, [], block_lines})
   end
 
   @doc """
@@ -516,54 +516,12 @@ defmodule OK do
 
   defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
 
-  defp wrap_code_block(expression = {_, env, _}) do
-    {:__block__, env, [expression]}
-  end
+  defp wrap_code_block(expr = {_, env, _}), do: {:__block__, env, [expr]}
 
   defp wrap_code_block(literal), do: {:__block__, [], [literal]}
 
-  defp with_expr({:<-, env, [lhs = {:_, _, _}, rhs]}) do
-    new_rhs =
-      quote do
-        case unquote(rhs) do
-          {:ok, _} ->
-            {:ok, nil}
-
-          {:error, reason} ->
-            {:error, reason}
-
-          return ->
-            raise %OK.BindError{
-              return: return,
-              lhs: unquote(Macro.to_string(lhs)),
-              rhs: unquote(Macro.to_string(rhs))
-            }
-        end
-      end
-
-    {:<-, env, [{:ok, lhs}, new_rhs]}
-  end
-
   defp with_expr({:<-, env, [lhs, rhs]}) do
-    new_rhs =
-      quote do
-        case unquote(rhs) do
-          {:ok, unquote(lhs)} ->
-            {:ok, unquote(lhs)}
-
-          {:error, reason} ->
-            {:error, reason}
-
-          return ->
-            raise %OK.BindError{
-              return: return,
-              lhs: unquote(Macro.to_string(lhs)),
-              rhs: unquote(Macro.to_string(rhs))
-            }
-        end
-      end
-
-    {:<-, env, [{:ok, lhs}, new_rhs]}
+    {:<-, env, [{:ok, lhs}, rhs]}
   end
 
   defp with_expr(quote_), do: quote_
@@ -572,14 +530,14 @@ defmodule OK do
     with_return_expr({:<-, env1, [{:OKVAR, env2, ctx}, rhs]})
   end
 
-  defp with_return_expr(expr = {:<-, _, [{var_name, env, ctx}, _]}) do
+  defp with_return_expr(expr = {:<-, _env, [{var_name, env, ctx}, _rhs]}) do
     line = Keyword.get(env, :line)
     return = [do: {:ok, {var_name, [line: line + 1], ctx}}]
     {with_expr(expr), return}
   end
 
-  defp with_return_expr(quote_ = {:=, _, [left, _]}) do
-    {with_expr(quote_), [do: {:ok, left}]}
+  defp with_return_expr(quote_ = {:=, _env, [lhs, _rhs]}) do
+    {with_expr(quote_), [do: {:ok, lhs}]}
   end
 
   defp with_return_expr(quote_), do: [do: quote_]
@@ -588,10 +546,10 @@ defmodule OK do
     {:->, env, [[error: lhs], rhs]}
   end
 
-  defp with_do_lines(lines, new_lines \\ [])
-  defp with_do_lines([], new_lines), do: Enum.reverse(new_lines)
+  defp with_block(lines, new_lines \\ [])
+  defp with_block([], new_lines), do: Enum.reverse(new_lines)
 
-  defp with_do_lines([line | []], new_lines) do
+  defp with_block([line | []], new_lines) do
     new_lines =
       case with_return_expr(line) do
         {last, return} ->
@@ -601,14 +559,14 @@ defmodule OK do
           [return | new_lines]
       end
 
-    with_do_lines([], new_lines)
+    with_block([], new_lines)
   end
 
-  defp with_do_lines([line | rest], new_lines) do
-    with_do_lines(rest, [with_expr(line) | new_lines])
+  defp with_block([line | rest], new_lines) do
+    with_block(rest, [with_expr(line) | new_lines])
   end
 
-  defp with_return_clause(with_quote) do
+  defp with_return(with_quote) do
     quote location: :keep do
       case unquote(with_quote) do
         {:ok, val} ->
