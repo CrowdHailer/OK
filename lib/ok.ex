@@ -310,12 +310,12 @@ defmodule OK do
     block_lines = with_block(lines)
     else_lines = Enum.map(exceptions, &with_else_expr/1)
 
-    default_clause = {:->, [], [[{:OKVAR, [], nil}], {:OKVAR, [], nil}]}
+    default_else_clause = quote do: ({:error, reason} -> {:error, reason})
     do_line_index = length(block_lines) - 1
 
     block_lines =
       List.update_at(block_lines, do_line_index, fn do_line ->
-        List.insert_at(do_line, 1, {:else, else_lines ++ [default_clause]})
+        List.insert_at(do_line, 1, {:else, else_lines ++ default_else_clause})
       end)
 
     with_return({:with, [], block_lines})
@@ -520,20 +520,25 @@ defmodule OK do
 
   defp wrap_code_block(literal), do: {:__block__, [], [literal]}
 
-  defp with_expr({:<-, env, [lhs, rhs]}) do
-    {:<-, env, [{:ok, lhs}, rhs]}
+  defp with_expr({:<-, [line: line], [lhs, rhs]}) do
+    quote line: line do
+      {:ok, unquote(lhs)} <- unquote(rhs)
+    end
   end
 
   defp with_expr(quote_), do: quote_
 
-  defp with_return_expr({:<-, env1, [{:_, env2, ctx}, rhs]}) do
-    with_return_expr({:<-, env1, [{:OKVAR, env2, ctx}, rhs]})
+  defp with_return_expr({:<-, env1, [{:_, env2, val}, rhs]}) do
+    with_return_expr({:<-, env1, [{:"OK.RETURN", env2, val}, rhs]})
   end
 
-  defp with_return_expr(expr = {:<-, _env, [{var_name, env, ctx}, _rhs]}) do
-    line = Keyword.get(env, :line)
-    return = [do: {:ok, {var_name, [line: line + 1], ctx}}]
-    {with_expr(expr), return}
+  defp with_return_expr(expr = {:<-, [line: line], [lhs, _rhs]}) do
+    {
+      with_expr(expr),
+      quote line: line + 1 do
+        [do: {:ok, unquote(lhs)}]
+      end
+    }
   end
 
   defp with_return_expr(quote_ = {:=, _env, [lhs, _rhs]}) do
@@ -566,14 +571,12 @@ defmodule OK do
     with_block(rest, [with_expr(line) | new_lines])
   end
 
+  # guards against returning non-tagged tuples
   defp with_return(with_quote) do
     quote location: :keep do
       case unquote(with_quote) do
-        {:ok, val} ->
-          {:ok, val}
-
-        {:error, reason} ->
-          {:error, reason}
+        {tag, val} when tag in [:ok, :error] ->
+          {tag, val}
 
         return ->
           raise %CaseClauseError{term: return}
