@@ -24,7 +24,7 @@ See [FAQ](#faq) at end of README for a few common question.
 
 ## OK.for
 
-`OK.for/1` combines serveral functions that may fail.
+`OK.for/1` combines several functions that may fail.
 
 - Use the `<-` operator to match & extract a value for an `:ok` tuple.
 - Use the `=` operator as you normally would for pattern matching an untagged result.
@@ -46,7 +46,7 @@ end
 
 ## OK.try
 
-`OK.try/1` combines serveral functions that may fail, and handles errors.
+`OK.try/1` combines several functions that may fail, and handles errors.
 
 This is useful when writing code that has it's own representation of errors.
 e.g. HTTP Responses.
