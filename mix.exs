@@ -26,7 +26,7 @@ defmodule OK.Mixfile do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:dialyxir, "~> 1.0.0-rc.3", only: [:test], runtime: false}
+      {:dialyxir, "~> 1.0.0-rc.3", only: [:test, :dev], runtime: false}
     ]
   end
 
