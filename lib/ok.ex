@@ -24,6 +24,8 @@ defmodule OK do
       iex> OK.map({:error, :some_reason}, fn (x) -> 2 * x end)
       {:error, :some_reason}
   """
+  @spec map({:ok, a}, function(a) :: b) :: {:ok, b} when a: term, b: term
+  @spec map({:error, reason}, function(term) :: term) :: {:error, reason} when reason: term
   def map({:ok, value}, func) when is_function(func, 1), do: {:ok, func.(value)}
   def map(failure = {:error, _reason}, _func), do: failure
 
@@ -40,6 +42,10 @@ defmodule OK do
       iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
+  # TODO this spec would be good
+  # @spec bind({:ok, a}, function(a) :: {:ok, b} | {:error, reason}) :: {:ok, b} | {:error, reason}
+  #       when a: term, b: term, reason: term
+  # @spec bind({:error, reason}, function(term) :: term) :: {:error, reason} when reason: term
   def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
   def bind(failure = {:error, _reason}, _func), do: failure
 
@@ -106,7 +112,6 @@ defmodule OK do
       {:ok, ["a", "b"]}
   """
   defmacro lhs ~> {call, line, args} do
-    # NOTE 1 arity function looks like 0 arity function in pipe
     value = quote do: value
     args = [value | args || []]
 
@@ -163,27 +168,12 @@ defmodule OK do
       iex> {:error, :previous_bad} ~>> safe_div(0) ~>> double()
       {:error, :previous_bad}
   """
-  defmacro lhs ~>> rhs do
-    {call, line, args} =
-      case rhs do
-        {call, line, nil} ->
-          {call, line, []}
-
-        {call, line, args} when is_list(args) ->
-          {call, line, args}
-      end
-
+  defmacro lhs ~>> {call, line, args} do
     value = quote do: value
-    args = [value | args]
+    args = [value | args || []]
 
     quote do
-      case (fn -> unquote(lhs) end).() do
-        {:ok, unquote(value)} ->
-          unquote({call, line, args})
-
-        {:error, reason} ->
-          {:error, reason}
-      end
+      OK.bind(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
     end
   end
 
@@ -509,12 +499,15 @@ defmodule OK do
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
     line = Keyword.get(env, :line)
 
-    quote line: line do
+    # quote line: line do
+    quote location: :keep do
       case unquote(right) do
         {:ok, unquote(left)} ->
           unquote(expand_bindings(rest, yield_block, exception_clauses))
 
         {:error, reason} ->
+          {:error, reason}
+
           case reason do
             unquote(exception_clauses)
           end
@@ -530,7 +523,7 @@ defmodule OK do
   end
 
   defp expand_bindings([normal | rest], yield_block, exception_clauses) do
-    quote do
+    quote location: :keep do
       unquote(normal)
       unquote(expand_bindings(rest, yield_block, exception_clauses))
     end

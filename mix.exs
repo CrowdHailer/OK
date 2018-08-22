@@ -6,6 +6,7 @@ defmodule OK.Mixfile do
       app: :ok,
       version: "1.11.0",
       elixir: "~> 1.1",
+      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -22,6 +23,9 @@ defmodule OK.Mixfile do
   def application do
     [applications: [:logger]]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/integration.ex"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
