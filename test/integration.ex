@@ -17,28 +17,38 @@ defmodule OK.Integration do
     OK.failure(:some_error)
     ~>> safe_div(0)
 
-    # nested = %{a: %{b: 5}}
+    nested = %{a: 8}
 
-    # OK.try do
-    #   map_a <- fetch_key(%{}, :a)
-    #   value <- fetch_key(map_a, :b)
-    # after
-    #   value
-    # rescue
-    #   _ ->
-    #     :bob
-    # end
+    OK.for do
+      number <- fetch_key(nested, :a)
+      result <- safe_div(6, number)
+    after
+      result
+    end
+
+    OK.try do
+      number <- fetch_key(nested, :a)
+      result <- safe_div(6, number)
+    after
+      result
+    rescue
+      :missing_key ->
+        :bob
+
+      :zero_division ->
+        :bob
+    end
   end
 
-  # defp fetch_key(map, key) do
-  #   case Map.fetch(map, key) do
-  #     {:ok, value} ->
-  #       {:ok, value}
-  #
-  #     :error ->
-  #       {:error, :missing_key}
-  #   end
-  # end
+  defp fetch_key(map, key) do
+    case Map.fetch(map, key) do
+      {:ok, value} ->
+        {:ok, value}
+
+      :error ->
+        {:error, :missing_key}
+    end
+  end
 
   @spec safe_div(integer, integer) :: {:ok, float} | {:error, :zero_division}
   def safe_div(_, 0) do

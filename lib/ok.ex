@@ -405,12 +405,7 @@ defmodule OK do
         unquote(__MODULE__).wrap(unquote(yield_block))
       end
 
-    exception_clauses =
-      quote do
-        reason -> {:error, reason}
-      end
-
-    expand_bindings(bindings, safe_yield_block, exception_clauses)
+    expand_bindings(bindings, safe_yield_block)
   end
 
   defmacro for(_) do
@@ -471,7 +466,18 @@ defmodule OK do
   """
   defmacro try(do: bind_block, after: yield_block, rescue: exception_clauses) do
     {:__block__, _env, bindings} = wrap_code_block(bind_block)
-    expand_bindings(bindings, yield_block, exception_clauses)
+
+    quote do
+      case unquote(expand_bindings(bindings, yield_block)) do
+        {:error, reason} ->
+          case reason do
+            unquote(exception_clauses)
+          end
+
+        value ->
+          value
+      end
+    end
   end
 
   defmacro try(_) do
@@ -496,40 +502,35 @@ defmodule OK do
     }
   end
 
-  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
+  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
     line = Keyword.get(env, :line)
 
-    # quote line: line do
-    quote location: :keep do
+    quote line: line do
       case unquote(right) do
         {:ok, unquote(left)} ->
-          unquote(expand_bindings(rest, yield_block, exception_clauses))
+          unquote(expand_bindings(rest, yield_block))
 
         {:error, reason} ->
           {:error, reason}
 
-          case reason do
-            unquote(exception_clauses)
-          end
-
-        return ->
-          raise %OK.BindError{
-            return: return,
-            lhs: unquote(Macro.to_string(left)),
-            rhs: unquote(Macro.to_string(right))
-          }
+          # return ->
+          #   raise %OK.BindError{
+          #     return: return,
+          #     lhs: unquote(Macro.to_string(left)),
+          #     rhs: unquote(Macro.to_string(right))
+          #   }
       end
     end
   end
 
-  defp expand_bindings([normal | rest], yield_block, exception_clauses) do
+  defp expand_bindings([normal | rest], yield_block) do
     quote location: :keep do
       unquote(normal)
-      unquote(expand_bindings(rest, yield_block, exception_clauses))
+      unquote(expand_bindings(rest, yield_block))
     end
   end
 
-  defp expand_bindings([], yield_block, _exceptional_clauses) do
+  defp expand_bindings([], yield_block) do
     yield_block
   end
 
