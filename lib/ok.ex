@@ -24,8 +24,10 @@ defmodule OK do
       iex> OK.map({:error, :some_reason}, fn (x) -> 2 * x end)
       {:error, :some_reason}
   """
+  @spec map({:ok, a}, function(a) :: b) :: {:ok, b} when a: any, b: any
+  @spec map({:error, reason}, function(any) :: any) :: {:error, reason} when reason: any
   def map({:ok, value}, func) when is_function(func, 1), do: {:ok, func.(value)}
-  def map(failure = {:error, _reason}, _func), do: failure
+  def map({:error, reason}, _func), do: {:error, reason}
 
   @doc """
   Takes a result tuple and a next function.
@@ -40,8 +42,14 @@ defmodule OK do
       iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
+  # @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
+  #         {:ok, b} | {:error, reason}
+  #       when a: any, b: any, reason: term
+  # NOTE return value of function is not checked to be a result tuple.
+  # errors are informative enough when piped to something else expecting result tuple.
+  # Also dialyzer will catch in anonymous function with incorrect typespec is given.
   def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
-  def bind(failure = {:error, _reason}, _func), do: failure
+  def bind({:error, reason}, _func), do: {:error, reason}
 
   @doc """
   Wraps a value as a successful result tuple.
@@ -106,7 +114,6 @@ defmodule OK do
       {:ok, ["a", "b"]}
   """
   defmacro lhs ~> {call, line, args} do
-    # NOTE 1 arity function looks like 0 arity function in pipe
     value = quote do: value
     args = [value | args || []]
 
@@ -163,27 +170,12 @@ defmodule OK do
       iex> {:error, :previous_bad} ~>> safe_div(0) ~>> double()
       {:error, :previous_bad}
   """
-  defmacro lhs ~>> rhs do
-    {call, line, args} =
-      case rhs do
-        {call, line, nil} ->
-          {call, line, []}
-
-        {call, line, args} when is_list(args) ->
-          {call, line, args}
-      end
-
+  defmacro lhs ~>> {call, line, args} do
     value = quote do: value
-    args = [value | args]
+    args = [value | args || []]
 
     quote do
-      case (fn -> unquote(lhs) end).() do
-        {:ok, unquote(value)} ->
-          unquote({call, line, args})
-
-        {:error, reason} ->
-          {:error, reason}
-      end
+      OK.bind(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
     end
   end
 
@@ -415,12 +407,7 @@ defmodule OK do
         unquote(__MODULE__).wrap(unquote(yield_block))
       end
 
-    exception_clauses =
-      quote do
-        reason -> {:error, reason}
-      end
-
-    expand_bindings(bindings, safe_yield_block, exception_clauses)
+    expand_bindings(bindings, safe_yield_block)
   end
 
   defmacro for(_) do
@@ -481,7 +468,18 @@ defmodule OK do
   """
   defmacro try(do: bind_block, after: yield_block, rescue: exception_clauses) do
     {:__block__, _env, bindings} = wrap_code_block(bind_block)
-    expand_bindings(bindings, yield_block, exception_clauses)
+
+    quote do
+      case unquote(expand_bindings(bindings, yield_block)) do
+        {:error, reason} ->
+          case reason do
+            unquote(exception_clauses)
+          end
+
+        value ->
+          value
+      end
+    end
   end
 
   defmacro try(_) do
@@ -506,19 +504,20 @@ defmodule OK do
     }
   end
 
-  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block, exception_clauses) do
+  defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
     line = Keyword.get(env, :line)
 
-    quote line: line do
-      case unquote(right) do
+    normal_cases =
+      quote line: line do
         {:ok, unquote(left)} ->
-          unquote(expand_bindings(rest, yield_block, exception_clauses))
+          unquote(expand_bindings(rest, yield_block))
 
         {:error, reason} ->
-          case reason do
-            unquote(exception_clauses)
-          end
+          {:error, reason}
+      end
 
+    warning_case =
+      quote line: line, generated: true do
         return ->
           raise %OK.BindError{
             return: return,
@@ -526,17 +525,22 @@ defmodule OK do
             rhs: unquote(Macro.to_string(right))
           }
       end
+
+    quote line: line do
+      case unquote(right) do
+        unquote(normal_cases ++ warning_case)
+      end
     end
   end
 
-  defp expand_bindings([normal | rest], yield_block, exception_clauses) do
-    quote do
+  defp expand_bindings([normal | rest], yield_block) do
+    quote location: :keep do
       unquote(normal)
-      unquote(expand_bindings(rest, yield_block, exception_clauses))
+      unquote(expand_bindings(rest, yield_block))
     end
   end
 
-  defp expand_bindings([], yield_block, _exceptional_clauses) do
+  defp expand_bindings([], yield_block) do
     yield_block
   end
 
