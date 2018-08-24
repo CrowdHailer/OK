@@ -42,9 +42,9 @@ defmodule OK do
       iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
-  # @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
-  #         {:ok, b} | {:error, reason}
-  #       when a: any, b: any, reason: term
+  @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
+          {:ok, b} | {:error, reason}
+        when a: any, b: any, reason: term
   # NOTE return value of function is not checked to be a result tuple.
   # errors are informative enough when piped to something else expecting result tuple.
   # Also dialyzer will catch in anonymous function with incorrect typespec is given.
