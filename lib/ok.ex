@@ -45,6 +45,9 @@ defmodule OK do
   # @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
   #         {:ok, b} | {:error, reason}
   #       when a: any, b: any, reason: term
+  # NOTE return value of function is not checked to be a result tuple.
+  # errors are informative enough when piped to something else expecting result tuple.
+  # Also dialyzer will catch in anonymous function with incorrect typespec is given.
   def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
   def bind({:error, reason}, _func), do: {:error, reason}
 
