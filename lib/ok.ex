@@ -504,20 +504,28 @@ defmodule OK do
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
     line = Keyword.get(env, :line)
 
-    quote line: line do
-      case unquote(right) do
+    normal_cases =
+      quote line: line do
         {:ok, unquote(left)} ->
           unquote(expand_bindings(rest, yield_block))
 
         {:error, reason} ->
           {:error, reason}
+      end
 
-          # return ->
-          #   raise %OK.BindError{
-          #     return: return,
-          #     lhs: unquote(Macro.to_string(left)),
-          #     rhs: unquote(Macro.to_string(right))
-          #   }
+    warning_case =
+      quote line: line, generated: true do
+        return ->
+          raise %OK.BindError{
+            return: return,
+            lhs: unquote(Macro.to_string(left)),
+            rhs: unquote(Macro.to_string(right))
+          }
+      end
+
+    quote line: line do
+      case unquote(right) do
+        unquote(normal_cases ++ warning_case)
       end
     end
   end
