@@ -24,10 +24,10 @@ defmodule OK do
       iex> OK.map({:error, :some_reason}, fn (x) -> 2 * x end)
       {:error, :some_reason}
   """
-  @spec map({:ok, a}, function(a) :: b) :: {:ok, b} when a: term, b: term
-  @spec map({:error, reason}, function(term) :: term) :: {:error, reason} when reason: term
+  @spec map({:ok, a}, function(a) :: b) :: {:ok, b} when a: any, b: any
+  @spec map({:error, reason}, function(any) :: any) :: {:error, reason} when reason: any
   def map({:ok, value}, func) when is_function(func, 1), do: {:ok, func.(value)}
-  def map(failure = {:error, _reason}, _func), do: failure
+  def map({:error, reason}, _func), do: {:error, reason}
 
   @doc """
   Takes a result tuple and a next function.
@@ -42,12 +42,11 @@ defmodule OK do
       iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
-  # TODO this spec would be good
-  # @spec bind({:ok, a}, function(a) :: {:ok, b} | {:error, reason}) :: {:ok, b} | {:error, reason}
-  #       when a: term, b: term, reason: term
-  # @spec bind({:error, reason}, function(term) :: term) :: {:error, reason} when reason: term
+  # @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
+  #         {:ok, b} | {:error, reason}
+  #       when a: any, b: any, reason: term
   def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
-  def bind(failure = {:error, _reason}, _func), do: failure
+  def bind({:error, reason}, _func), do: {:error, reason}
 
   @doc """
   Wraps a value as a successful result tuple.

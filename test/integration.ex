@@ -9,10 +9,8 @@ defmodule OK.Integration do
     OK.failure(:some_error)
     ~> String.split()
 
-    # TODO this should raise error
-    :x =
-      OK.success(5)
-      ~>> safe_div(0)
+    safe_div(8, 2)
+    ~>> safe_div(0)
 
     OK.failure(:some_error)
     ~>> safe_div(0)
