@@ -93,89 +93,6 @@ end
 Use `~>>` for `File.read` because it returns a result tuple.
 Use `~>` for `String.upcase` because it returns a bare value that should be wrapped in an ok tuple.
 
-## OK.with
-
-#### This macro is deprecated. Use instead `OK.try/1` or `OK.for/1`
-
-`OK.with/1` allows for more concise and ultimately more readable code than the native `with` construct. It does this by leveraging result monads for both the happy and non-happy paths. By extracting the actual function return values from the result tuples, `OK.with/1` reduces noise which improves readability and recovers precious horizontal code real estate. This also encourages writing idiomatic Elixir functions which return `:ok`/`:error` tuples.
-
-- [Elegant error handling with result monads, alternative to elixir `with` special form](https://elixirforum.com/t/elegant-error-handling-with-result-monads-alternative-to-elixir-with-special-form/3264/1)
-- [Discussion on :ok/:error](https://elixirforum.com/t/usage-of-ok-result-error-vs-some-result-none/3253)
-
-#### Basic Usage
-
-- Use the `<-` operator to match & extract a value for an `:ok` tuple.
-- Use the `=` operator as you normally would for pattern matching an untagged result.
-- Return result must also be in the form of a tagged tuple.
-- _Optionally_ pattern match on some errors in an `else` block.
-
-_NB: Statements inside `OK.with` blocks are **not** delimited by commas as with the native Elixir `with` construct._
-
-```elixir
-require OK
-
-OK.with do
-  user <- fetch_user(1)        # `<-` operator means func returns {:ok, user}
-  cart <- fetch_cart(1)        # `<-` again, {:ok, cart}
-  order = checkout(cart, user) # `=` allows pattern matching on non-tagged funcs
-  save_order(order)            # Returns an ok/error tuple
-end
-```
-
-The cart example above is equivalent to the following nested `case` statements
-
-```elixir
-case fetch_user(1) do
-  {:ok, user} ->
-    case fetch_cart(1) do
-      {:ok, cart} ->
-        order = checkout(cart, user)
-        save_order(order)
-      {:error, reason} ->
-        {:error, reason}
-    end
-  {:error, reason} ->
-    {:error, reason}
-end
-```
-
-You can pattern match on errors as well in an `else` block:
-
-```elixir
-require OK
-
-OK.with do
-  user <- fetch_user(1)
-  cart <- fetch_cart(1)
-  order = checkout(cart, user)
-  save_order(order)
-else
-  :user_not_found ->           # Match on untagged reason
-    {:error, :unauthorized}    # Return a literal error tuple
-end
-```
-
-Note that the `else` block pattern matches on the extracted error reason, but the return expression must still be the full tuple.
-
-*Unlike Elixir's native `with` construct, any unmatched error case does not throw an error and will just be passed as the return value*
-
-You can also use `OK.success` and `OK.failure` macros:
-
-```elixir
-require OK
-
-OK.with do
-  user <- fetch_user(1)
-  cart <- fetch_cart(1)
-  order = checkout(cart, user)
-  saved <- save_order(order)
-  OK.success saved               # Returns {:ok, saved}
-else
-  :user_not_found ->
-    OK.failure :unauthorized     # Returns {:error, :unauthorized}
-end
-```
-
 ## Semantic matches
 
 `OK` provides macros for matching on success and failure cases.
@@ -198,7 +115,9 @@ end
 
 #### Why does `OK` not catch raised errors?
 
-Two reasons:
+For the main rational behind this decision see the article [Errors are not exceptional](http://crowdhailer.me/2018-08-26/errors-are-not-exceptional/)
+
+Two other reasons:
 - Exceptional input and errors are not the same thing,
   `OK` leaves raising exceptions as a way to handle errors that should never happen.
 - Calls inside try/1 are not tail recursive since the VM needs to keep the stacktrace in case an exception happens.
@@ -217,6 +136,12 @@ Two reasons:
     end
   end
   ```
+
+#### What changed in version 2.0
+
+- `OK.with` was deprecated.
+- `use OK.Pipe` was added.
+- `OK.bind` was renamed `OK.flat_map`.
 
 ## Additional External Links and Resources
 

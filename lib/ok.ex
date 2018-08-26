@@ -36,20 +36,52 @@ defmodule OK do
 
   ## Examples
 
-      iex> OK.bind({:ok, 2}, fn (x) -> {:ok, 2 * x} end)
+      iex> OK.flat_map({:ok, 2}, fn (x) -> {:ok, 2 * x} end)
       {:ok, 4}
 
-      iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
+      iex> OK.flat_map({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
-  @spec bind({:ok, a} | {:error, reason}, (a -> {:ok, b} | {:error, reason})) ::
+  @spec flat_map({:ok, a} | {:error, reason}, (a -> {:ok, b} | {:error, reason})) ::
           {:ok, b} | {:error, reason}
         when a: any, b: any, reason: any
   # NOTE return value of function is not checked to be a result tuple.
   # errors are informative enough when piped to something else expecting result tuple.
   # Also dialyzer will catch in anonymous function with incorrect typespec is given.
-  def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
-  def bind({:error, reason}, _func), do: {:error, reason}
+  def flat_map({:ok, value}, func) when is_function(func, 1), do: func.(value)
+  def flat_map({:error, reason}, _func), do: {:error, reason}
+
+  @doc """
+  Transform every element of a list with a mapping function.
+  The mapping function must return a result tuple.
+
+  If all of the result tuples are tagged :ok, then it returns a list tagged with :ok.
+  If one or more of the result tuples are tagged :error, it returns the first error.
+
+  ## Examples
+
+      iex> OK.map_all(1..3, &safe_div(6, &1))
+      {:ok, [6.0, 3.0, 2.0]}
+
+      iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
+      {:error, :zero_division}
+  """
+  @spec map_all([a], (a -> {:ok, b} | {:error, reason})) :: {:ok, [b]} | {:error, reason}
+        when a: any, b: any, reason: any
+  def map_all(list, func) when is_function(func, 1) do
+    result =
+      Enum.reduce_while(list, [], fn value, acc ->
+        case func.(value) do
+          {:ok, value} ->
+            {:cont, [value | acc]}
+
+          {:error, _} = error ->
+            {:halt, error}
+        end
+      end)
+
+    if is_list(result), do: {:ok, Enum.reverse(result)}, else: result
+  end
 
   @doc """
   Wraps a value as a successful result tuple.
@@ -78,6 +110,24 @@ defmodule OK do
       {:error, unquote(reason)}
     end
   end
+
+  @doc """
+  Wraps any term in an `:ok` tuple, unless already a result monad.
+
+  ## Examples
+
+      iex> OK.wrap("value")
+      {:ok, "value"}
+
+      iex> OK.wrap({:ok, "value"})
+      {:ok, "value"}
+
+      iex> OK.wrap({:error, "reason"})
+      {:error, "reason"}
+  """
+  def wrap({:ok, value}), do: {:ok, value}
+  def wrap({:error, reason}), do: {:error, reason}
+  def wrap(other), do: {:ok, other}
 
   @doc """
   Require a variable not to be nil.
@@ -124,7 +174,7 @@ defmodule OK do
   end
 
   @doc """
-  The OK result pipe operator `~>>`, or result monad bind operator, is similar
+  The OK result pipe operator `~>>`, or result monad flat_map operator, is similar
   to Elixir's native `|>` except it is used within happy path. It takes the
   value out of an `{:ok, value}` tuple and passes it as the first argument to
   the function call on the right.
@@ -176,169 +226,8 @@ defmodule OK do
     args = [value | args || []]
 
     quote do
-      OK.bind(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
+      OK.flat_map(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
     end
-  end
-
-  @doc """
-  Composes multiple functions similar to Elixir's native `with` construct.
-
-  `OK.with/1` enables more terse and readable expressions however, eliminating
-  noise and regaining precious horizontal real estate. This makes `OK.with`
-  statements simpler, more readable, and ultimately more maintainable.
-
-  It does this by extracting result tuples when using the `<-` operator.
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 2)
-      ...>   OK.success b
-      ...> end
-      {:ok, 2.0}
-
-  In above example, the result of each call to `safe_div/2` is an `:ok` tuple
-  from which the `<-` extract operator pulls the value and assigns to the
-  variable `a`. We then do the same for `b`, and to indicate our return value
-  we use the `OK.success/1` macro.
-
-  We could have also written this with a raw `:ok` tuple:
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 2)
-      ...>   {:ok, b}
-      ...> end
-      {:ok, 2.0}
-
-  Or even this:
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   _ <- safe_div(a, 2)
-      ...> end
-      {:ok, 2.0}
-
-  In addition to this, regular matching using the `=` operator is also available:
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b = 2.0
-      ...>   OK.success a + b
-      ...> end
-      {:ok, 6.0}
-
-  Error tuples are returned from the expression:
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 0) # error here
-      ...>   {:ok, a + b}        # does not execute this line
-      ...> end
-      {:error, :zero_division}
-
-  `OK.with` also provides `else` blocks where you can pattern match on the _extracted_ error values, which is useful for wrapping or correcting errors:
-
-      iex> OK.with do
-      ...>   a <- safe_div(8, 2)
-      ...>   b <- safe_div(a, 0) # returns {:error, :zero_division}
-      ...>   {:ok, a + b}
-      ...> else
-      ...>   :zero_division -> OK.failure "You cannot divide by 0."
-      ...> end
-      {:error, "You cannot divide by 0."}
-
-  ## Combining OK.with and ~>>
-
-  Because the OK.pipe operator (`~>>`) also uses result monads, you can now pipe
-  _safely_ within an `OK.with` block:
-
-      iex> OK.with do
-      ...>   a <- {:ok, 100}
-      ...>        ~>> safe_div(10)
-      ...>        ~>> safe_div(5)
-      ...>   b <- safe_div(64, 32)
-      ...>        ~>> double()
-      ...>   OK.success a + b
-      ...> end
-      {:ok, 6.0}
-
-      iex> OK.with do
-      ...>   a <- {:ok, 100}
-      ...>        ~>> safe_div(10)
-      ...>        ~>> safe_div(0)   # error here
-      ...>   b <- safe_div(64, 32)
-      ...>        ~>> double()
-      ...>   OK.success a + b
-      ...> end
-      {:error, :zero_division}
-
-  ## Remarks
-
-  Notice that in all of these examples, we know this is a happy path operation
-  because we are inside of the `OK.with` block. But it is much more elegant,
-  readable and DRY, as it eliminates large numbers of superfluous `:ok` tags
-  that would normally be found in native `with` blocks.
-
-  Also, `OK.with` does not have trailing commas on each line. This avoids
-  compilation errors when you accidentally forget to add/remove a comma when
-  coding.
-
-  Be sure to check out [`ok_test.exs` tests](https://github.com/CrowdHailer/OK/blob/master/test/ok_test.exs)
-  for more examples.
-  """
-  defmacro with(do: code) do
-    {:__block__, _env, lines} = wrap_code_block(code)
-    return = bind_match(lines)
-
-    quote do
-      IO.warn(
-        "`OK.with/1` is deprecated. Use instead `OK.try/1` or `OK.for/1`",
-        Macro.Env.stacktrace(__ENV__)
-      )
-
-      case unquote(return) do
-        result = {tag, _} when tag in [:ok, :error] ->
-          result
-      end
-    end
-  end
-
-  defmacro with(do: code, else: exceptional) do
-    {:__block__, _env, normal} = wrap_code_block(code)
-
-    exceptional_clauses =
-      exceptional ++
-        quote do
-          reason ->
-            {:error, reason}
-        end
-
-    quote do
-      unquote(bind_match(normal))
-      |> case do
-        {:ok, value} ->
-          {:ok, value}
-
-        {:error, reason} ->
-          case reason do
-            unquote(exceptional_clauses)
-          end
-          |> case do
-            result = {tag, _} when tag in [:ok, :error] ->
-              result
-          end
-      end
-    end
-  end
-
-  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
-
-  defp wrap_code_block(expression = {_, env, _}) do
-    {:__block__, env, [expression]}
-  end
-
-  defp wrap_code_block(literal) do
-    {:__block__, [], [literal]}
   end
 
   @doc """
@@ -439,7 +328,7 @@ defmodule OK do
   If all bindings can be made, i.e. all functions returned `{:ok, value}`,
   then the after block is executed to return the final value.
 
-  If any bind fails then the rescue block will be tried.
+  If any binding fails then the rescue block will be tried.
 
   *Note: return value from after will be returned unwrapped*
 
@@ -505,6 +394,16 @@ defmodule OK do
     }
   end
 
+  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+
+  defp wrap_code_block(expression = {_, env, _}) do
+    {:__block__, env, [expression]}
+  end
+
+  defp wrap_code_block(literal) do
+    {:__block__, [], [literal]}
+  end
+
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
     line = Keyword.get(env, :line)
 
@@ -543,75 +442,5 @@ defmodule OK do
 
   defp expand_bindings([], yield_block) do
     yield_block
-  end
-
-  def wrap({:ok, value}), do: {:ok, value}
-  def wrap({:error, reason}), do: {:error, reason}
-  def wrap(other), do: {:ok, other}
-
-  defp bind_match([]) do
-    quote do: nil
-  end
-
-  defp bind_match([{:<-, env, [left, right]} | rest]) do
-    line = Keyword.get(env, :line)
-    lhs_string = Macro.to_string(left)
-    rhs_string = Macro.to_string(right)
-    tmp = quote do: tmp
-
-    quote line: line do
-      case unquote(tmp) = unquote(right) do
-        {:ok, unquote(left)} ->
-          unquote(bind_match(rest) || tmp)
-
-        result = {:error, _} ->
-          result
-
-        return ->
-          raise %OK.BindError{return: return, lhs: unquote(lhs_string), rhs: unquote(rhs_string)}
-      end
-    end
-  end
-
-  defp bind_match([normal | rest]) do
-    tmp = quote do: tmp
-
-    quote do
-      unquote(tmp) = unquote(normal)
-      unquote(bind_match(rest) || tmp)
-    end
-  end
-
-  @doc """
-  Transform every element of a list with a mapping function.
-  The mapping function must return a result tuple.
-
-  If all of the result tuples are tagged :ok, then it returns a list tagged with :ok.
-  If one or more of the result tuples are tagged :error, it returns the first error.
-
-  ## Examples
-
-      iex> OK.map_all(1..3, &safe_div(6, &1))
-      {:ok, [6.0, 3.0, 2.0]}
-
-      iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
-      {:error, :zero_division}
-  """
-
-  @spec map_all([a], (a -> {:ok, b} | {:error, reason})) :: {:ok, [b]} | {:error, reason}
-        when a: any, b: any, reason: any
-  def map_all(list, func) when is_function(func, 1) do
-    result =
-      Enum.reduce_while(list, [], fn value, acc ->
-        case func.(value) do
-          {:ok, value} ->
-            {:cont, [value | acc]}
-
-          {:error, _} = error ->
-            {:halt, error}
-        end
-      end)
-
-    if is_list(result), do: {:ok, Enum.reverse(result)}, else: result
   end
 end
