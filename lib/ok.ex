@@ -36,20 +36,52 @@ defmodule OK do
 
   ## Examples
 
-      iex> OK.bind({:ok, 2}, fn (x) -> {:ok, 2 * x} end)
+      iex> OK.flat_map({:ok, 2}, fn (x) -> {:ok, 2 * x} end)
       {:ok, 4}
 
-      iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
+      iex> OK.flat_map({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
-  @spec bind({:ok, a} | {:error, reason}, (a -> {:ok, b} | {:error, reason})) ::
+  @spec flat_map({:ok, a} | {:error, reason}, (a -> {:ok, b} | {:error, reason})) ::
           {:ok, b} | {:error, reason}
         when a: any, b: any, reason: any
   # NOTE return value of function is not checked to be a result tuple.
   # errors are informative enough when piped to something else expecting result tuple.
   # Also dialyzer will catch in anonymous function with incorrect typespec is given.
-  def bind({:ok, value}, func) when is_function(func, 1), do: func.(value)
-  def bind({:error, reason}, _func), do: {:error, reason}
+  def flat_map({:ok, value}, func) when is_function(func, 1), do: func.(value)
+  def flat_map({:error, reason}, _func), do: {:error, reason}
+
+  @doc """
+  Transform every element of a list with a mapping function.
+  The mapping function must return a result tuple.
+
+  If all of the result tuples are tagged :ok, then it returns a list tagged with :ok.
+  If one or more of the result tuples are tagged :error, it returns the first error.
+
+  ## Examples
+
+      iex> OK.map_all(1..3, &safe_div(6, &1))
+      {:ok, [6.0, 3.0, 2.0]}
+
+      iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
+      {:error, :zero_division}
+  """
+  @spec map_all([a], (a -> {:ok, b} | {:error, reason})) :: {:ok, [b]} | {:error, reason}
+        when a: any, b: any, reason: any
+  def map_all(list, func) when is_function(func, 1) do
+    result =
+      Enum.reduce_while(list, [], fn value, acc ->
+        case func.(value) do
+          {:ok, value} ->
+            {:cont, [value | acc]}
+
+          {:error, _} = error ->
+            {:halt, error}
+        end
+      end)
+
+    if is_list(result), do: {:ok, Enum.reverse(result)}, else: result
+  end
 
   @doc """
   Wraps a value as a successful result tuple.
@@ -78,6 +110,24 @@ defmodule OK do
       {:error, unquote(reason)}
     end
   end
+
+  @doc """
+  Wraps any term in an `:ok` tuple, unless already a result monad.
+
+  ## Examples
+
+      iex> OK.wrap("value")
+      {:ok, "value"}
+
+      iex> OK.wrap({:ok, "value"})
+      {:ok, "value"}
+
+      iex> OK.wrap({:error, "reason"})
+      {:error, "reason"}
+  """
+  def wrap({:ok, value}), do: {:ok, value}
+  def wrap({:error, reason}), do: {:error, reason}
+  def wrap(other), do: {:ok, other}
 
   @doc """
   Require a variable not to be nil.
@@ -124,7 +174,7 @@ defmodule OK do
   end
 
   @doc """
-  The OK result pipe operator `~>>`, or result monad bind operator, is similar
+  The OK result pipe operator `~>>`, or result monad flat_map operator, is similar
   to Elixir's native `|>` except it is used within happy path. It takes the
   value out of an `{:ok, value}` tuple and passes it as the first argument to
   the function call on the right.
@@ -176,18 +226,8 @@ defmodule OK do
     args = [value | args || []]
 
     quote do
-      OK.bind(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
+      OK.flat_map(unquote(lhs), fn unquote(value) -> unquote({call, line, args}) end)
     end
-  end
-
-  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
-
-  defp wrap_code_block(expression = {_, env, _}) do
-    {:__block__, env, [expression]}
-  end
-
-  defp wrap_code_block(literal) do
-    {:__block__, [], [literal]}
   end
 
   @doc """
@@ -288,7 +328,7 @@ defmodule OK do
   If all bindings can be made, i.e. all functions returned `{:ok, value}`,
   then the after block is executed to return the final value.
 
-  If any bind fails then the rescue block will be tried.
+  If any binding fails then the rescue block will be tried.
 
   *Note: return value from after will be returned unwrapped*
 
@@ -354,6 +394,16 @@ defmodule OK do
     }
   end
 
+  defp wrap_code_block(block = {:__block__, _env, _lines}), do: block
+
+  defp wrap_code_block(expression = {_, env, _}) do
+    {:__block__, env, [expression]}
+  end
+
+  defp wrap_code_block(literal) do
+    {:__block__, [], [literal]}
+  end
+
   defp expand_bindings([{:<-, env, [left, right]} | rest], yield_block) do
     line = Keyword.get(env, :line)
 
@@ -392,42 +442,5 @@ defmodule OK do
 
   defp expand_bindings([], yield_block) do
     yield_block
-  end
-
-  def wrap({:ok, value}), do: {:ok, value}
-  def wrap({:error, reason}), do: {:error, reason}
-  def wrap(other), do: {:ok, other}
-
-  @doc """
-  Transform every element of a list with a mapping function.
-  The mapping function must return a result tuple.
-
-  If all of the result tuples are tagged :ok, then it returns a list tagged with :ok.
-  If one or more of the result tuples are tagged :error, it returns the first error.
-
-  ## Examples
-
-      iex> OK.map_all(1..3, &safe_div(6, &1))
-      {:ok, [6.0, 3.0, 2.0]}
-
-      iex> OK.map_all([-1, 0, 1], &safe_div(6, &1))
-      {:error, :zero_division}
-  """
-
-  @spec map_all([a], (a -> {:ok, b} | {:error, reason})) :: {:ok, [b]} | {:error, reason}
-        when a: any, b: any, reason: any
-  def map_all(list, func) when is_function(func, 1) do
-    result =
-      Enum.reduce_while(list, [], fn value, acc ->
-        case func.(value) do
-          {:ok, value} ->
-            {:cont, [value | acc]}
-
-          {:error, _} = error ->
-            {:halt, error}
-        end
-      end)
-
-    if is_list(result), do: {:ok, Enum.reverse(result)}, else: result
   end
 end

@@ -141,6 +141,7 @@ Two other reasons:
 
 - `OK.with` was deprecated.
 - `use OK.Pipe` was added.
+- `OK.bind` was renamed `OK.flat_map`.
 
 ## Additional External Links and Resources
 
