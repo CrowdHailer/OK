@@ -4,7 +4,7 @@ defmodule OK.Mixfile do
   def project do
     [
       app: :ok,
-      version: "1.11.2",
+      version: "2.0.0",
       elixir: "~> 1.1",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
