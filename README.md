@@ -72,16 +72,16 @@ rescue
 end
 ```
 
-## OK Pipeline Operators
+## OK Pipe
 
-The pipeline macro (`~>>`) is equivalent to `bind`/`flat_map`.
-The pipeline macro (`~>`) is equivalent to `map`.
+The pipe (`~>>`) is equivalent to `bind`/`flat_map`.
+The pipe (`~>`) is equivalent to `map`.
 
 These macros allows pipelining result tuples through multiple functions
 for an extremely concise happy path.
 
 ```elixir
-import OK, only: [~>>: 2, ~>: 2]
+use OK.Pipe
 
 def get_employee_data(file, name) do
   {:ok, file}
