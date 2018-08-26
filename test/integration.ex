@@ -1,6 +1,6 @@
 defmodule OK.Integration do
   require OK
-  import OK, only: [~>: 2, ~>>: 2]
+  use OK.Pipe
 
   def run() do
     OK.success("a,b")
