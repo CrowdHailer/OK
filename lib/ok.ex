@@ -24,8 +24,8 @@ defmodule OK do
       iex> OK.map({:error, :some_reason}, fn (x) -> 2 * x end)
       {:error, :some_reason}
   """
-  @spec map({:ok, a}, function(a) :: b) :: {:ok, b} when a: any, b: any
-  @spec map({:error, reason}, function(any) :: any) :: {:error, reason} when reason: any
+  @spec map({:ok, a}, (a -> b)) :: {:ok, b} when a: any, b: any
+  @spec map({:error, reason}, (any -> any)) :: {:error, reason} when reason: any
   def map({:ok, value}, func) when is_function(func, 1), do: {:ok, func.(value)}
   def map({:error, reason}, _func), do: {:error, reason}
 
@@ -42,9 +42,9 @@ defmodule OK do
       iex> OK.bind({:error, :some_reason}, fn (x) -> {:ok, 2 * x} end)
       {:error, :some_reason}
   """
-  # @spec bind({:ok, a} | {:error, reason}, function(a) :: {:ok, b} | {:error, reason}) ::
-  #         {:ok, b} | {:error, reason}
-  #       when a: any, b: any, reason: term
+  @spec bind({:ok, a} | {:error, reason}, (a -> {:ok, b} | {:error, reason})) ::
+          {:ok, b} | {:error, reason}
+        when a: any, b: any, reason: any
   # NOTE return value of function is not checked to be a result tuple.
   # errors are informative enough when piped to something else expecting result tuple.
   # Also dialyzer will catch in anonymous function with incorrect typespec is given.
@@ -95,6 +95,7 @@ defmodule OK do
       iex> OK.required(Map.get(%{}, :port), :port_number_required)
       {:error, :port_number_required}
   """
+  @spec required(any, any) :: {:ok, any} | {:error, any}
   def required(value, reason \\ :value_required)
   def required(nil, reason), do: {:error, reason}
   def required(value, _reason), do: {:ok, value}
@@ -597,10 +598,12 @@ defmodule OK do
       {:error, :zero_division}
   """
 
-  def map_all(list, fun) do
+  @spec map_all([a], (a -> {:ok, b} | {:error, reason})) :: {:ok, [b]} | {:error, reason}
+        when a: any, b: any, reason: any
+  def map_all(list, func) when is_function(func, 1) do
     result =
       Enum.reduce_while(list, [], fn value, acc ->
-        case fun.(value) do
+        case func.(value) do
           {:ok, value} ->
             {:cont, [value | acc]}
 
