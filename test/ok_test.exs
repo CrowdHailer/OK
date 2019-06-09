@@ -46,6 +46,21 @@ defmodule OKTest do
     end
   end
 
+  test "filter returns {:ok, value} when the test is true" do
+    result = OK.filter({:ok, "test"}, fn value -> value == "test" end, :bad_value)
+    assert {:ok, "test"} = result
+  end
+
+  test "filter returns {:error, reason} when the test is false" do
+    result = OK.filter({:ok, "test"}, fn value -> value == "other_string" end, :bad_value)
+    assert {:error, :bad_value} = result
+  end
+
+  test "filter does nothing when the original result tuple is tagged as :error" do
+    result = OK.filter({:error, :some_reason}, fn value -> value == "test" end)
+    assert {:error, :some_reason} = result
+  end
+
   # These are all used in doc tests
   def double(a) do
     {:ok, 2 * a}

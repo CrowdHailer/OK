@@ -84,6 +84,38 @@ defmodule OK do
   end
 
   @doc """
+  Takes a result tuple, a predicate function, and an optional error reason.
+  If the result tuple is tagged as a success then its value will be passed to the predicate function.
+  If the predicate returns `true`, then the result tuple stay the same.
+  If the predicate returns `false, then the result tuple becomes `{:error, reason}`.
+  If the tag is failure then the predicate function is skipped.
+
+  ## Examples
+
+      iex> OK.filter({:ok, 2}, fn (x) -> x == 2 end)
+      {:ok, 2}
+
+      iex> OK.filter({:ok, 2}, fn (x) -> x == 3 end, :bad_value)
+      {:error, :bad_value}
+
+      iex> OK.filter({:error, :some_reason}, fn (x) -> x == 4 end)
+      {:error, :some_reason}
+  """
+  @spec filter({:ok, a} | {:error, reason}, (a -> boolean), test_failure_reason) ::
+          {:ok, a} | {:error, test_failure_reason} | {:error, reason}
+        when a: any, reason: any, test_failure_reason: any
+  def filter(result_tuple, func, reason \\ :failed_predicate)
+
+  def filter({:ok, value}, func, reason) when is_function(func, 1) do
+    case func.(value) do
+      true -> {:ok, value}
+      false -> {:error, reason}
+    end
+  end
+
+  def filter({:error, reason}, _func, _reason), do: {:error, reason}
+
+  @doc """
   Wraps a value as a successful result tuple.
 
   ## Examples
