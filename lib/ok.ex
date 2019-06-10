@@ -84,7 +84,7 @@ defmodule OK do
   end
 
   @doc """
-  Takes a result tuple, a predicate function, and an optional error reason.
+  Takes a result tuple, a predicate function, and an error reason.
   If the result tuple is tagged as a success then its value will be passed to the predicate function.
   If the predicate returns `true`, then the result tuple stay the same.
   If the predicate returns `false, then the result tuple becomes `{:error, reason}`.
