@@ -117,6 +117,40 @@ defmodule OK do
   def check({:error, reason}, _func, _reason), do: {:error, reason}
 
   @doc """
+  Helper function. Checks if a result tuple is tagged as `:ok`, and returns `true` if so.
+  If the tuple is tagged as `:error`, returns `false`.
+
+  ## Examples
+
+      iex> OK.is_ok?({:ok, "some value"})
+      true
+
+      iex> OK.is_ok?({:error, :some_reason})
+      false
+  """
+  @spec is_ok?({:ok, a}) :: true when a: any
+  @spec is_ok?({:error, reason}) :: false when reason: any
+  def is_ok?({:ok, _value}), do: true
+  def is_ok?({:error, _reason}), do: false
+
+  @doc """
+  Helper function. Checks if a result tuple is tagged as `:error`, and returns `true` if so.
+  If the tuple is tagged as `:ok`, returns `false`.
+
+  ## Examples
+
+      iex> OK.is_error?({:error, :some_reason})
+      true
+
+      iex> OK.is_error?({:ok, "some value"})
+      false
+  """
+  @spec is_error?({:ok, a}) :: false when a: any
+  @spec is_error?({:error, reason}) :: true when reason: any
+  def is_error?({:ok, _value}), do: false
+  def is_error?({:error, _reason}), do: true
+
+  @doc """
   Wraps a value as a successful result tuple.
 
   ## Examples
