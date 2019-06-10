@@ -117,7 +117,7 @@ defmodule OK do
   def check({:error, reason}, _func, _reason), do: {:error, reason}
 
   @doc """
-  Helper function. Checks if a result tuple is tagged as `:ok`, and returns `true` if so.
+  Checks if a result tuple is tagged as `:ok`, and returns `true` if so.
   If the tuple is tagged as `:error`, returns `false`.
 
   ## Examples
@@ -134,7 +134,7 @@ defmodule OK do
   def is_ok?({:error, _reason}), do: false
 
   @doc """
-  Helper function. Checks if a result tuple is tagged as `:error`, and returns `true` if so.
+  Checks if a result tuple is tagged as `:error`, and returns `true` if so.
   If the tuple is tagged as `:ok`, returns `false`.
 
   ## Examples
