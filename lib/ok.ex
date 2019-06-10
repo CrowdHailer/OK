@@ -92,29 +92,29 @@ defmodule OK do
 
   ## Examples
 
-      iex> OK.filter({:ok, 2}, fn (x) -> x == 2 end, :bad_value)
+      iex> OK.check({:ok, 2}, fn (x) -> x == 2 end, :bad_value)
       {:ok, 2}
 
-      iex> OK.filter({:ok, 2}, fn (x) -> x == 3 end, :bad_value)
+      iex> OK.check({:ok, 2}, fn (x) -> x == 3 end, :bad_value)
       {:error, :bad_value}
 
-      iex> OK.filter({:error, :some_reason}, fn (x) -> x == 4 end, :bad_value)
+      iex> OK.check({:error, :some_reason}, fn (x) -> x == 4 end, :bad_value)
       {:error, :some_reason}
   """
-  @spec filter({:ok, a}, (a -> boolean), test_failure_reason) ::
+  @spec check({:ok, a}, (a -> boolean), test_failure_reason) ::
           {:ok, a} | {:error, test_failure_reason}
         when a: any, test_failure_reason: any
-  @spec filter({:error, reason}, (a -> boolean), test_failure_reason) :: {:error, reason}
+  @spec check({:error, reason}, (a -> boolean), test_failure_reason) :: {:error, reason}
         when a: any, reason: any, test_failure_reason: any
 
-  def filter({:ok, value}, func, reason) when is_function(func, 1) do
+  def check({:ok, value}, func, reason) when is_function(func, 1) do
     case func.(value) do
       true -> {:ok, value}
       false -> {:error, reason}
     end
   end
 
-  def filter({:error, reason}, _func, _reason), do: {:error, reason}
+  def check({:error, reason}, _func, _reason), do: {:error, reason}
 
   @doc """
   Wraps a value as a successful result tuple.
