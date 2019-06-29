@@ -116,6 +116,12 @@ defmodule OK do
 
   def check({:error, reason}, _func, _reason), do: {:error, reason}
 
+  @doc false
+  @deprecated "use OK.success?/1 instead"
+  @spec is_success?({:ok, a}) :: true when a: any
+  @spec is_success?({:error, reason}) :: false when reason: any
+  def is_success?(value), do: success?(value)
+
   @doc """
   Checks if a result tuple is tagged as `:ok`, and returns `true` if so.
   If the tuple is tagged as `:error`, returns `false`.
@@ -132,6 +138,12 @@ defmodule OK do
   @spec success?({:error, reason}) :: false when reason: any
   def success?({:ok, _value}), do: true
   def success?({:error, _reason}), do: false
+
+  @doc false
+  @deprecated "use OK.failure?/1 instead"
+  @spec is_failure?({:ok, a}) :: false when a: any
+  @spec is_failure?({:error, reason}) :: true when reason: any
+  def is_failure?(value), do: failure?(value)
 
   @doc """
   Checks if a result tuple is tagged as `:error`, and returns `true` if so.
