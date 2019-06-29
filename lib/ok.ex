@@ -162,6 +162,62 @@ defmodule OK do
   def failure?({:ok, _value}), do: false
   def failure?({:error, _reason}), do: true
 
+  @doc guard: true
+  @doc """
+  Checks if a result tuple is tagged as `:error`, and returns `true` if so.
+  If the tuple is tagged as `:ok`, returns `false`.
+
+  Allowed in guards.
+
+  ## Examples
+
+      iex> require OK
+      ...> f = fn result when OK.is_success(result) -> "ok" end
+      ...> f.({:ok, "some value"})
+      "ok"
+
+      iex> require OK
+      ...> f = fn result when OK.is_success(result) -> "ok" end
+      ...> f.({:error, :some_reason})
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (31)\"/1
+
+      iex> require OK
+      ...> f = fn result when OK.is_success(result) -> "ok" end
+      ...> f.(nil)
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (32)\"/1
+  """
+  @spec is_success(term()) :: Macro.t()
+  defguard is_success(result)
+           when is_tuple(result) and tuple_size(result) === 2 and elem(result, 0) === :ok
+
+  @doc guard: true
+  @doc """
+  Checks if a result tuple is tagged as `:error`, and returns `true` if so.
+  If the tuple is tagged as `:ok`, returns `false`.
+
+  Allowed in guards.
+
+  ## Examples
+
+      iex> require OK
+      ...> f = fn result when OK.is_failure(result) -> "error" end
+      ...> f.({:error, :some_reason})
+      "error"
+
+      iex> require OK
+      ...> f = fn result when OK.is_failure(result) -> "error" end
+      ...> f.({:ok, "some value"})
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest."doctest OK.is_failure/1 (28)"/1
+
+      iex> require OK
+      ...> f = fn result when OK.is_failure(result) -> "error" end
+      ...> f.(nil)
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_failure/1 (29)\"/1
+  """
+  @spec is_failure(term()) :: Macro.t()
+  defguard is_failure(result)
+           when is_tuple(result) and tuple_size(result) === 2 and elem(result, 0) === :error
+
   @doc """
   Wraps a value as a successful result tuple.
 

@@ -14,7 +14,10 @@ defmodule OK.Mixfile do
       docs: [
         main: "readme",
         source_url: "https://github.com/CrowdHailer/OK",
-        extras: ["README.md"]
+        extras: ["README.md"],
+        groups_for_functions: [
+          Guards: & &1[:guard]
+        ]
       ],
       package: package()
     ]
