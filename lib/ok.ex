@@ -122,16 +122,16 @@ defmodule OK do
 
   ## Examples
 
-      iex> OK.is_success?({:ok, "some value"})
+      iex> OK.success?({:ok, "some value"})
       true
 
-      iex> OK.is_success?({:error, :some_reason})
+      iex> OK.success?({:error, :some_reason})
       false
   """
-  @spec is_success?({:ok, a}) :: true when a: any
-  @spec is_success?({:error, reason}) :: false when reason: any
-  def is_success?({:ok, _value}), do: true
-  def is_success?({:error, _reason}), do: false
+  @spec success?({:ok, a}) :: true when a: any
+  @spec success?({:error, reason}) :: false when reason: any
+  def success?({:ok, _value}), do: true
+  def success?({:error, _reason}), do: false
 
   @doc """
   Checks if a result tuple is tagged as `:error`, and returns `true` if so.
@@ -139,16 +139,16 @@ defmodule OK do
 
   ## Examples
 
-      iex> OK.is_failure?({:error, :some_reason})
+      iex> OK.failure?({:error, :some_reason})
       true
 
-      iex> OK.is_failure?({:ok, "some value"})
+      iex> OK.failure?({:ok, "some value"})
       false
   """
-  @spec is_failure?({:ok, a}) :: false when a: any
-  @spec is_failure?({:error, reason}) :: true when reason: any
-  def is_failure?({:ok, _value}), do: false
-  def is_failure?({:error, _reason}), do: true
+  @spec failure?({:ok, a}) :: false when a: any
+  @spec failure?({:error, reason}) :: true when reason: any
+  def failure?({:ok, _value}), do: false
+  def failure?({:error, _reason}), do: true
 
   @doc """
   Wraps a value as a successful result tuple.
