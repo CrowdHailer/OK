@@ -84,6 +84,43 @@ defmodule OK do
   end
 
   @doc """
+  Splits the `enumerable` in two lists according to the result of the given
+  function `func`.
+
+  Splits the given `enumerable` in two lists by calling `func` with each element
+  in the `enumerable` as its only argument. Returns a tuple with the first list
+  containing the result of all the elements in `enumerable` for which applying
+  `func` returned an :ok tuple, and a second list with all the elements for
+  which applying `func` returned an `:error` tuple.
+
+  The elements in both the returned lists are in the same relative order as they
+  were in the original enumerable (if such enumerable was ordered, like a
+  list). See the examples below.
+
+  ## Examples
+      iex> OK.map_all_split([1, nil, 3, :a], fn x -> if is_integer(x), do: {:ok, x}, else: {:error, x} end)
+      {[1, 3], [nil, :a]}
+
+      iex> OK.map_all_split(%{a: 1, b: -2, c: 1, d: -3}, fn {k, v} -> if v < 0, do: {:ok, k}, else: {:error, k} end)
+      {[:b, :d], [:a, :c]}
+
+      iex> OK.map_all_split(%{}, fn _ -> :ok end)
+      {[], []}
+  """
+  @spec map_all_split([a], (a -> {:ok, b} | {:error, reason})) :: {[a], [reason]}
+        when a: any, b: any, reason: any
+  def map_all_split(list, func) when is_function(func, 1) do
+    {oks, failures} =
+      list
+      |> Enum.map(func)
+      |> Enum.split_with(&success?/1)
+
+    ok_values = Enum.map(oks, &unwrap_ok/1)
+    failure_values = Enum.map(failures, &unwrap_failure/1)
+    {ok_values, failure_values}
+  end
+
+  @doc """
   Takes a result tuple, a predicate function, and an error reason.
   If the result tuple is tagged as a success then its value will be passed to the predicate function.
   If the predicate returns `true`, then the result tuple stay the same.
@@ -179,12 +216,12 @@ defmodule OK do
       iex> require OK
       ...> f = fn result when OK.is_success(result) -> "ok" end
       ...> f.({:error, :some_reason})
-      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (31)\"/1
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (39)\"/1
 
       iex> require OK
       ...> f = fn result when OK.is_success(result) -> "ok" end
       ...> f.(nil)
-      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (32)\"/1
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_success/1 (40)\"/1
   """
   @spec is_success(term()) :: Macro.t()
   defguard is_success(result)
@@ -207,12 +244,12 @@ defmodule OK do
       iex> require OK
       ...> f = fn result when OK.is_failure(result) -> "error" end
       ...> f.({:ok, "some value"})
-      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest."doctest OK.is_failure/1 (28)"/1
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest."doctest OK.is_failure/1 (36)"/1
 
       iex> require OK
       ...> f = fn result when OK.is_failure(result) -> "error" end
       ...> f.(nil)
-      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_failure/1 (29)\"/1
+      ** (FunctionClauseError) no function clause matching in anonymous fn/1 in OKTest.\"doctest OK.is_failure/1 (37)\"/1
   """
   @spec is_failure(term()) :: Macro.t()
   defguard is_failure(result)
@@ -263,6 +300,44 @@ defmodule OK do
   def wrap({:ok, value}), do: {:ok, value}
   def wrap({:error, reason}), do: {:error, reason}
   def wrap(other), do: {:ok, other}
+
+  @doc """
+  Unwraps any term in an `:ok` tuple, `:error` tuple, or returns the value.
+
+  ## Examples
+
+      iex> OK.unwrap("value")
+      "value"
+
+      iex> OK.unwrap({:ok, "value"})
+      "value"
+
+      iex> OK.unwrap({:error, "reason"})
+      "reason"
+  """
+  def unwrap({:ok, value}), do: value
+  def unwrap({:error, reason}), do: reason
+  def unwrap(other), do: other
+
+  @doc """
+  Unwraps any term in an `:ok` tuple.
+
+  ## Examples
+
+      iex> OK.unwrap_ok({:ok, "value"})
+      "value"
+  """
+  def unwrap_ok({:ok, value}), do: value
+
+  @doc """
+  Unwraps any term in an `:error` tuple.
+
+  ## Examples
+
+      iex> OK.unwrap_failure({:error, "reason"})
+      "reason"
+  """
+  def unwrap_failure({:error, reason}), do: reason
 
   @doc """
   Require a variable not to be nil.
