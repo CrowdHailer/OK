@@ -164,8 +164,8 @@ defmodule OK do
 
   @doc guard: true
   @doc """
-  Checks if a result tuple is tagged as `:error`, and returns `true` if so.
-  If the tuple is tagged as `:ok`, returns `false`.
+  Checks if a result tuple is tagged as `:ok`, and returns `true` if so.
+  If the tuple is tagged as `:error`, returns `false`.
 
   Allowed in guards.
 
